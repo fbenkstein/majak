@@ -5,6 +5,7 @@
 *.ilk
 TAGS
 /build
+/build*
 /build.ninja
 /ninja
 /ninja.bootstrap
