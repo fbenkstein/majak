@@ -19,7 +19,6 @@ set(
     src/eval_env.cc
     src/graph.cc
     src/graphviz.cc
-    src/lexer.cc
     src/line_printer.cc
     src/manifest_parser.cc
     src/metrics.cc
