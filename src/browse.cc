@@ -19,7 +19,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "build/browse_py.h"
+#include "browse_py.h"
 
 void RunBrowsePython(State* state, const char* ninja_command,
                      const char* input_file, int argc, char* argv[]) {
