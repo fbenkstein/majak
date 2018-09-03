@@ -27,6 +27,7 @@ set(
     src/line_printer.cc
     src/manifest_parser.cc
     src/metrics.cc
+    src/ninja.cc
     src/state.cc
     src/string_piece_util.cc
     src/util.cc
@@ -146,10 +147,10 @@ target_compile_definitions(
     PRIVATE ${ninja_private_compile_definitions}
 )
 
-add_executable(ninja src/ninja.cc)
+add_executable(ninja src/ninja_main.cc)
 target_link_libraries(ninja libninja)
 
-add_executable(majak src/majak.cc)
+add_executable(majak src/majak_main.cc)
 target_link_libraries(majak libninja)
 
 set(

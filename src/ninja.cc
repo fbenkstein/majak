@@ -33,193 +33,40 @@
 #include "browse.h"
 #include "build.h"
 #include "build_log.h"
-#include "deps_log.h"
 #include "clean.h"
 #include "debug_flags.h"
+#include "deps_log.h"
 #include "disk_interface.h"
 #include "graph.h"
 #include "graphviz.h"
 #include "manifest_parser.h"
 #include "metrics.h"
+#include "ninja.h"
 #include "state.h"
 #include "util.h"
 #include "version.h"
 
-#ifdef _MSC_VER
-// Defined in msvc_helper_main-win32.cc.
-int MSVCHelperMain(int argc, char** argv);
-
-// Defined in minidump-win32.cc.
-void CreateWin32MiniDump(_EXCEPTION_POINTERS* pep);
-#endif
-
-namespace {
-
-struct Tool;
-
-/// Command-line options.
-struct Options {
-  /// Build file to load.
-  const char* input_file;
-
-  /// Directory to change into before running.
-  const char* working_dir;
-
-  /// Tool to run rather than building.
-  const Tool* tool;
-
-  /// Whether duplicate rules for one target should warn or print an error.
-  bool dupe_edges_should_err;
-
-  /// Whether phony cycles should warn or print an error.
-  bool phony_cycle_should_err;
-};
-
-/// The Ninja main() loads up a series of data structures; various tools need
-/// to poke into these, so store them as fields on an object.
-struct NinjaMain : public BuildLogUser {
-  NinjaMain(const char* ninja_command, const BuildConfig& config) :
-      ninja_command_(ninja_command), config_(config) {}
-
-  /// Command line used to run Ninja.
-  const char* ninja_command_;
-
-  /// Build configuration set from flags (e.g. parallelism).
-  const BuildConfig& config_;
-
-  /// Loaded state (rules, nodes).
-  State state_;
-
-  /// Functions for accesssing the disk.
-  RealDiskInterface disk_interface_;
-
-  /// The build directory, used for storing the build log etc.
-  string build_dir_;
-
-  BuildLog build_log_;
-  DepsLog deps_log_;
-
-  /// The type of functions that are the entry points to tools (subcommands).
-  typedef int (NinjaMain::*ToolFunc)(const Options*, int, char**);
-
-  /// Get the Node for a given command-line path, handling features like
-  /// spell correction.
-  Node* CollectTarget(const char* cpath, string* err);
-
-  /// CollectTarget for all command-line arguments, filling in \a targets.
-  bool CollectTargetsFromArgs(int argc, char* argv[],
-                              vector<Node*>* targets, string* err);
-
-  // The various subcommands, run via "-t XXX".
-  int ToolGraph(const Options* options, int argc, char* argv[]);
-  int ToolQuery(const Options* options, int argc, char* argv[]);
-  int ToolDeps(const Options* options, int argc, char* argv[]);
-  int ToolBrowse(const Options* options, int argc, char* argv[]);
-  int ToolMSVC(const Options* options, int argc, char* argv[]);
-  int ToolTargets(const Options* options, int argc, char* argv[]);
-  int ToolCommands(const Options* options, int argc, char* argv[]);
-  int ToolClean(const Options* options, int argc, char* argv[]);
-  int ToolCompilationDatabase(const Options* options, int argc, char* argv[]);
-  int ToolRecompact(const Options* options, int argc, char* argv[]);
-  int ToolUrtle(const Options* options, int argc, char** argv);
-
-  /// Open the build log.
-  /// @return false on error.
-  bool OpenBuildLog(bool recompact_only = false);
-
-  /// Open the deps log: load it, then open for writing.
-  /// @return false on error.
-  bool OpenDepsLog(bool recompact_only = false);
-
-  /// Ensure the build directory exists, creating it if necessary.
-  /// @return false on error.
-  bool EnsureBuildDirExists();
-
-  /// Rebuild the manifest, if necessary.
-  /// Fills in \a err on error.
-  /// @return true if the manifest was rebuilt.
-  bool RebuildManifest(const char* input_file, string* err);
-
-  /// Build the targets listed on the command line.
-  /// @return an exit code.
-  int RunBuild(int argc, char** argv);
-
-  /// Dump the output requested by '-d stats'.
-  void DumpMetrics();
-
-  virtual bool IsPathDead(StringPiece s) const {
-    Node* n = state_.LookupNode(s);
-    if (!n || !n->in_edge())
-      return false;
-    // Just checking n isn't enough: If an old output is both in the build log
-    // and in the deps log, it will have a Node object in state_.  (It will also
-    // have an in edge if one of its inputs is another output that's in the deps
-    // log, but having a deps edge product an output thats input to another deps
-    // edge is rare, and the first recompaction will delete all old outputs from
-    // the deps log, and then a second recompaction will clear the build log,
-    // which seems good enough for this corner case.)
-    // Do keep entries around for files which still exist on disk, for
-    // generators that want to use this information.
-    string err;
-    TimeStamp mtime = disk_interface_.Stat(s.AsString(), &err);
-    if (mtime == -1)
-      Error("%s", err.c_str());  // Log and ignore Stat() errors.
-    return mtime == 0;
-  }
-};
-
-/// Subtools, accessible via "-t foo".
-struct Tool {
-  /// Short name of the tool.
-  const char* name;
-
-  /// Description (shown in "-t list").
-  const char* desc;
-
-  /// When to run the tool.
-  enum {
-    /// Run after parsing the command-line flags and potentially changing
-    /// the current working directory (as early as possible).
-    RUN_AFTER_FLAGS,
-
-    /// Run after loading build.ninja.
-    RUN_AFTER_LOAD,
-
-    /// Run after loading the build/deps logs.
-    RUN_AFTER_LOGS,
-  } when;
-
-  /// Implementation of the tool.
-  NinjaMain::ToolFunc func;
-};
-
-/// Print usage information.
-void Usage(const BuildConfig& config) {
-  fprintf(stderr,
-"usage: ninja [options] [targets...]\n"
-"\n"
-"if targets are unspecified, builds the 'default' target (see manual).\n"
-"\n"
-"options:\n"
-"  --version  print ninja version (\"%s\")\n"
-"\n"
-"  -C DIR   change to DIR before doing anything else\n"
-"  -f FILE  specify input build file [default=build.ninja]\n"
-"\n"
-"  -j N     run N jobs in parallel [default=%d, derived from CPUs available]\n"
-"  -k N     keep going until N jobs fail (0 means infinity) [default=1]\n"
-"  -l N     do not start new jobs if the load average is greater than N\n"
-"  -n       dry run (don't run commands but act like they succeeded)\n"
-"  -v       show all command lines while building\n"
-"\n"
-"  -d MODE  enable debugging (use '-d list' to list modes)\n"
-"  -t TOOL  run a subtool (use '-t list' to list subtools)\n"
-"    terminates toplevel options; further flags are passed to the tool\n"
-"  -w FLAG  adjust warnings (use '-w list' to list warnings)\n",
-          kNinjaVersion, config.parallelism);
+namespace ninja {
+bool NinjaMain::IsPathDead(StringPiece s) const {
+  Node* n = state_.LookupNode(s);
+  if (!n || !n->in_edge())
+    return false;
+  // Just checking n isn't enough: If an old output is both in the build log
+  // and in the deps log, it will have a Node object in state_.  (It will also
+  // have an in edge if one of its inputs is another output that's in the deps
+  // log, but having a deps edge product an output thats input to another deps
+  // edge is rare, and the first recompaction will delete all old outputs from
+  // the deps log, and then a second recompaction will clear the build log,
+  // which seems good enough for this corner case.)
+  // Do keep entries around for files which still exist on disk, for
+  // generators that want to use this information.
+  string err;
+  TimeStamp mtime = disk_interface_.Stat(s.AsString(), &err);
+  if (mtime == -1)
+    Error("%s", err.c_str());  // Log and ignore Stat() errors.
+  return mtime == 0;
 }
 
-/// Choose a default value for the -j (parallelism) flag.
 int GuessParallelism() {
   switch (int processors = GetProcessorCount()) {
   case 0:
@@ -799,8 +646,6 @@ int NinjaMain::ToolUrtle(const Options* options, int argc, char** argv) {
   return 0;
 }
 
-/// Find the function to execute for \a tool_name and return it via \a func.
-/// Returns a Tool, or NULL if Ninja should exit.
 const Tool* ChooseTool(const string& tool_name) {
   static const Tool kTools[] = {
 #if defined(NINJA_HAVE_BROWSE)
@@ -859,8 +704,6 @@ const Tool* ChooseTool(const string& tool_name) {
   return NULL;  // Not reached.
 }
 
-/// Enable a debugging mode.  Returns false if Ninja should exit instead
-/// of continuing.
 bool DebugEnable(const string& name) {
   if (name == "list") {
     printf("debugging modes:\n"
@@ -903,8 +746,6 @@ bool DebugEnable(const string& name) {
   }
 }
 
-/// Set a warning flag.  Returns false if Ninja should exit instead  of
-/// continuing.
 bool WarningEnable(const string& name, Options* options) {
   if (name == "list") {
     printf("warning flags:\n"
@@ -1070,7 +911,6 @@ int NinjaMain::RunBuild(int argc, char** argv) {
 }
 
 #ifdef _MSC_VER
-
 /// This handler processes fatal crashes that you can't catch
 /// Test example: C++ exception in a stack-unwind-block
 /// Real-world example: ninja launched a compiler to process a tricky
@@ -1092,185 +932,7 @@ int ExceptionFilter(unsigned int code, struct _EXCEPTION_POINTERS *ep) {
 
 #endif  // _MSC_VER
 
-/// Parse argv for command-line options.
-/// Returns an exit code, or -1 if Ninja should continue.
-int ReadFlags(int* argc, char*** argv,
-              Options* options, BuildConfig* config) {
-  config->parallelism = GuessParallelism();
-
-  enum { OPT_VERSION = 1 };
-  const option kLongOptions[] = {
-    { "help", no_argument, NULL, 'h' },
-    { "version", no_argument, NULL, OPT_VERSION },
-    { NULL, 0, NULL, 0 }
-  };
-
-  int opt;
-  while (!options->tool &&
-         (opt = getopt_long(*argc, *argv, "d:f:j:k:l:nt:vw:C:h", kLongOptions,
-                            NULL)) != -1) {
-    switch (opt) {
-      case 'd':
-        if (!DebugEnable(optarg))
-          return 1;
-        break;
-      case 'f':
-        options->input_file = optarg;
-        break;
-      case 'j': {
-        char* end;
-        int value = strtol(optarg, &end, 10);
-        if (*end != 0 || value <= 0)
-          Fatal("invalid -j parameter");
-        config->parallelism = value;
-        break;
-      }
-      case 'k': {
-        char* end;
-        int value = strtol(optarg, &end, 10);
-        if (*end != 0)
-          Fatal("-k parameter not numeric; did you mean -k 0?");
-
-        // We want to go until N jobs fail, which means we should allow
-        // N failures and then stop.  For N <= 0, INT_MAX is close enough
-        // to infinite for most sane builds.
-        config->failures_allowed = value > 0 ? value : INT_MAX;
-        break;
-      }
-      case 'l': {
-        char* end;
-        double value = strtod(optarg, &end);
-        if (end == optarg)
-          Fatal("-l parameter not numeric: did you mean -l 0.0?");
-        config->max_load_average = value;
-        break;
-      }
-      case 'n':
-        config->dry_run = true;
-        break;
-      case 't':
-        options->tool = ChooseTool(optarg);
-        if (!options->tool)
-          return 0;
-        break;
-      case 'v':
-        config->verbosity = BuildConfig::VERBOSE;
-        break;
-      case 'w':
-        if (!WarningEnable(optarg, options))
-          return 1;
-        break;
-      case 'C':
-        options->working_dir = optarg;
-        break;
-      case OPT_VERSION:
-        printf("%s\n", kNinjaVersion);
-        return 0;
-      case 'h':
-      default:
-        Usage(*config);
-        return 1;
-    }
-  }
-  *argv += optind;
-  *argc -= optind;
-
-  return -1;
-}
-
-NORETURN void real_main(int argc, char** argv) {
-  // Use exit() instead of return in this function to avoid potentially
-  // expensive cleanup when destructing NinjaMain.
-  BuildConfig config;
-  Options options = {};
-  options.input_file = "build.ninja";
-  options.dupe_edges_should_err = true;
-
-  setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
-  const char* ninja_command = argv[0];
-
-  int exit_code = ReadFlags(&argc, &argv, &options, &config);
-  if (exit_code >= 0)
-    exit(exit_code);
-
-  if (options.working_dir) {
-    // The formatting of this string, complete with funny quotes, is
-    // so Emacs can properly identify that the cwd has changed for
-    // subsequent commands.
-    // Don't print this if a tool is being used, so that tool output
-    // can be piped into a file without this string showing up.
-    if (!options.tool)
-      printf("ninja: Entering directory `%s'\n", options.working_dir);
-    if (chdir(options.working_dir) < 0) {
-      Fatal("chdir to '%s' - %s", options.working_dir, strerror(errno));
-    }
-  }
-
-  if (options.tool && options.tool->when == Tool::RUN_AFTER_FLAGS) {
-    // None of the RUN_AFTER_FLAGS actually use a NinjaMain, but it's needed
-    // by other tools.
-    NinjaMain ninja(ninja_command, config);
-    exit((ninja.*options.tool->func)(&options, argc, argv));
-  }
-
-  // Limit number of rebuilds, to prevent infinite loops.
-  const int kCycleLimit = 100;
-  for (int cycle = 1; cycle <= kCycleLimit; ++cycle) {
-    NinjaMain ninja(ninja_command, config);
-
-    ManifestParserOptions parser_opts;
-    if (options.dupe_edges_should_err) {
-      parser_opts.dupe_edge_action_ = kDupeEdgeActionError;
-    }
-    if (options.phony_cycle_should_err) {
-      parser_opts.phony_cycle_action_ = kPhonyCycleActionError;
-    }
-    ManifestParser parser(&ninja.state_, &ninja.disk_interface_, parser_opts);
-    string err;
-    if (!parser.Load(options.input_file, &err)) {
-      Error("%s", err.c_str());
-      exit(1);
-    }
-
-    if (options.tool && options.tool->when == Tool::RUN_AFTER_LOAD)
-      exit((ninja.*options.tool->func)(&options, argc, argv));
-
-    if (!ninja.EnsureBuildDirExists())
-      exit(1);
-
-    if (!ninja.OpenBuildLog() || !ninja.OpenDepsLog())
-      exit(1);
-
-    if (options.tool && options.tool->when == Tool::RUN_AFTER_LOGS)
-      exit((ninja.*options.tool->func)(&options, argc, argv));
-
-    // Attempt to rebuild the manifest before building anything else
-    if (ninja.RebuildManifest(options.input_file, &err)) {
-      // In dry_run mode the regeneration will succeed without changing the
-      // manifest forever. Better to return immediately.
-      if (config.dry_run)
-        exit(0);
-      // Start the build over with the new manifest.
-      continue;
-    } else if (!err.empty()) {
-      Error("rebuilding '%s': %s", options.input_file, err.c_str());
-      exit(1);
-    }
-
-    int result = ninja.RunBuild(argc, argv);
-    if (g_metrics)
-      ninja.DumpMetrics();
-    exit(result);
-  }
-
-  Error("manifest '%s' still dirty after %d tries\n",
-      options.input_file, kCycleLimit);
-  exit(1);
-}
-
-}  // anonymous namespace
-
-int main(int argc, char** argv) {
+int guarded_main(MainFunction real_main, int argc, char** argv) {
 #if defined(_MSC_VER)
   // Set a handler to catch crashes not caught by the __try..__except
   // block (e.g. an exception in a stack-unwind-block).
@@ -1288,4 +950,6 @@ int main(int argc, char** argv) {
 #else
   real_main(argc, argv);
 #endif
+  return 0;
 }
+}  // namespace ninja

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <climits>
 #include <cstring>
 #include <utility>
 
@@ -24,8 +25,13 @@
 #include <unistd.h>
 #endif
 
+#include "manifest_parser.h"
+#include "ninja.h"
 #include "util.h"
 #include "version.h"
+
+namespace {
+constexpr const char kInputFile[] = "build.ninja";
 
 constexpr const char MAIN_USAGE[] = R"(usage: majak [options] <command>
 
@@ -38,9 +44,63 @@ commands:
   version  print majak version
 )";
 
-using Command = int (*)(const char* working_dir, int argc, char** argv);
+constexpr const char BUILD_USAGE[] =
+    R"(usage: majak build [options] [targets...]
+
+options:
+  -j N     run N jobs in parallel [default derived from CPUs available]
+  -k N     keep going until N jobs fail (0 means infinity) [default=1]
+  -n       dry run (don't run commands but act like they succeeded)
+  -v       show all command lines while building
+)";
 
 int CommandBuild(const char* working_dir, int argc, char** argv) {
+  BuildConfig config;
+  config.parallelism = GuessParallelism();
+  optind = 1;
+  int opt;
+
+  constexpr option kLongOptions[] = { { "help", no_argument, nullptr, 'h' },
+                                      { nullptr, 0, nullptr, 0 } };
+
+  while ((opt = getopt_long(argc, argv, "j:k:nvh", kLongOptions, nullptr)) !=
+         -1) {
+    switch (opt) {
+    case 'j': {
+      char* end;
+      int value = strtol(optarg, &end, 10);
+      if (*end != 0 || value <= 0)
+        Fatal("invalid -j parameter");
+      config.parallelism = value;
+      break;
+    }
+    case 'k': {
+      char* end;
+      int value = strtol(optarg, &end, 10);
+      if (*end != 0)
+        Fatal("-k parameter not numeric; did you mean -k 0?");
+
+      // We want to go until N jobs fail, which means we should allow
+      // N failures and then stop.  For N <= 0, INT_MAX is close enough
+      // to infinite for most sane builds.
+      config.failures_allowed = value > 0 ? value : INT_MAX;
+      break;
+    }
+    case 'n':
+      config.dry_run = true;
+      break;
+    case 'v':
+      config.verbosity = BuildConfig::VERBOSE;
+      break;
+    case 'h':
+    default:
+      fputs(BUILD_USAGE, stderr);
+      exit(opt == 'h');
+    }
+  }
+  argv += optind;
+  argc -= optind;
+
   if (working_dir) {
     // The formatting of this string, complete with funny quotes, is
     // so Emacs can properly identify that the cwd has changed for
@@ -53,7 +113,46 @@ int CommandBuild(const char* working_dir, int argc, char** argv) {
     }
   }
 
-  fputs("Not implemented\n", stderr);
+  constexpr int kCycleLimit = 100;
+  for (int cycle = 1; cycle <= kCycleLimit; ++cycle) {
+    NinjaMain ninja("majak build", config);
+    ManifestParserOptions parser_opts;
+    parser_opts.dupe_edge_action_ = kDupeEdgeActionError;
+    parser_opts.phony_cycle_action_ = kPhonyCycleActionError;
+    ManifestParser parser(&ninja.state_, &ninja.disk_interface_, parser_opts);
+
+    string err;
+    if (!parser.Load(kInputFile, &err)) {
+      Error("%s", err.c_str());
+      exit(1);
+    }
+
+    if (!ninja.EnsureBuildDirExists())
+      exit(1);
+
+    if (!ninja.OpenBuildLog() || !ninja.OpenDepsLog())
+      exit(1);
+
+    // Attempt to rebuild the manifest before building anything else
+    if (ninja.RebuildManifest(kInputFile, &err)) {
+      // In dry_run mode the regeneration will succeed without changing the
+      // manifest forever. Better to return immediately.
+      if (config.dry_run)
+        exit(0);
+      // Start the build over with the new manifest.
+      continue;
+    } else if (!err.empty()) {
+      Error("rebuilding '%s': %s", kInputFile, err.c_str());
+      exit(1);
+    }
+
+    int result = ninja.RunBuild(argc, argv);
+    if (g_metrics)
+      ninja.DumpMetrics();
+    exit(result);
+  }
+
+  Error("manifest '%s' still dirty after %d tries\n", kInputFile, kCycleLimit);
   return 0;
 }
 
@@ -61,6 +160,8 @@ int CommandVersion(const char* = nullptr, int = 0, char** = nullptr) {
   printf("majak %s\n", kNinjaVersion);
   return 0;
 }
+
+using Command = int (*)(const char* working_dir, int argc, char** argv);
 
 Command ChooseCommand(const char* command_name) {
   using CommandEntry = std::pair<const char*, Command>;
@@ -84,6 +185,8 @@ Command ChooseCommand(const char* command_name) {
 }
 
 NORETURN void real_main(int argc, char** argv) {
+  setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
+
   const char* working_dir = nullptr;
   optind = 1;
   int opt;
@@ -124,43 +227,8 @@ NORETURN void real_main(int argc, char** argv) {
 
   exit(0);
 }
-
-#ifdef _MSC_VER
-/// This handler processes fatal crashes that you can't catch
-/// Test example: C++ exception in a stack-unwind-block
-/// Real-world example: ninja launched a compiler to process a tricky
-/// C++ input file. The compiler got itself into a state where it
-/// generated 3 GB of output and caused ninja to crash.
-void TerminateHandler() {
-  CreateWin32MiniDump(NULL);
-  Fatal("terminate handler called");
-}
-
-/// On Windows, we want to prevent error dialogs in case of exceptions.
-/// This function handles the exception, and writes a minidump.
-int ExceptionFilter(unsigned int code, struct _EXCEPTION_POINTERS* ep) {
-  Error("exception: 0x%X", code);  // e.g. EXCEPTION_ACCESS_VIOLATION
-  fflush(stderr);
-  CreateWin32MiniDump(ep);
-  return EXCEPTION_EXECUTE_HANDLER;
-}
-#endif  // _MSC_VER
+}  // anonymous namespace
 
 int main(int argc, char** argv) {
-#if defined(_MSC_VER)
-  // Set a handler to catch crashes not caught by the __try..__except
-  // block (e.g. an exception in a stack-unwind-block).
-  std::set_terminate(TerminateHandler);
-  __try {
-    // Running inside __try ... __except suppresses any Windows error
-    // dialogs for errors such as bad_alloc.
-    real_main(argc, argv);
-  } __except (ExceptionFilter(GetExceptionCode(), GetExceptionInformation())) {
-    // Common error situations return exitCode=1. 2 was chosen to
-    // indicate a more serious problem.
-    return 2;
-  }
-#else
-  real_main(argc, argv);
-#endif
+  return guarded_main(real_main, argc, argv);
 }
