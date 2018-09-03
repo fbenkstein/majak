@@ -26,5 +26,6 @@ script:
         -DCMAKE_C_COMPILER=${CC} \
         -DCMAKE_MAKE_PROGRAM=${NINJA} ..
     cmake --build . -- -v ninja
+    ctest
     popd
     sha1sum build-{make,ninja}/{ninja,libninja.a}
