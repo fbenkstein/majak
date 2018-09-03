@@ -196,3 +196,5 @@ foreach(perftest_name IN LISTS ninja_perftests)
     add_executable(${perftest_name} src/${perftest_name}.cc)
     target_link_libraries(${perftest_name} libninja)
 endforeach()
+
+install(TARGETS ninja RUNTIME DESTINATION bin)
