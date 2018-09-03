@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.9)
 cmake_policy(SET CMP0063 NEW)
 
 project(majak LANGUAGES C CXX)
@@ -6,6 +6,10 @@ project(majak LANGUAGES C CXX)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 find_package(RE2C)
 find_package(PythonInterp 3)
+find_package(Doxygen OPTIONAL_COMPONENTS dot)
+find_program(NINJA_ASCIIDOC_EXECUTABLE asciidoc)
+find_program(NINJA_XSLTPROC_EXECUTABLE xsltproc)
+find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
 
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
@@ -235,5 +239,75 @@ foreach(perftest_name IN LISTS ninja_perftests)
     add_executable(${perftest_name} src/${perftest_name}.cc)
     target_link_libraries(${perftest_name} libninja)
 endforeach()
+
+if (TARGET Doxygen::dot AND CMAKE_GENERATOR STREQUAL "Ninja")
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/graph.dot
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build.ninja
+        COMMAND
+            ninja -t graph all > ${CMAKE_CURRENT_BINARY_DIR}/graph.dot
+        COMMENT
+            "[graph] build.ninja"
+    )
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/graph.png
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/graph.dot
+        COMMAND
+            Doxygen::dot
+            -Tpng
+            -o${CMAKE_CURRENT_BINARY_DIR}/graph.png
+            ${CMAKE_CURRENT_BINARY_DIR}/graph.dot
+        COMMENT
+            "[dot] graph.dot"
+    )
+    add_custom_target(graph DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/graph.png)
+endif()
+
+if (NINJA_ASCIIDOC_EXECUTABLE)
+    add_custom_command(
+        DEPENDS doc/manual.asciidoc
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+        COMMAND
+            "${NINJA_ASCIIDOC_EXECUTABLE}"
+            -b docbook
+            -d book
+            -o "${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+            ${CMAKE_CURRENT_SOURCE_DIR}/doc/manual.asciidoc
+        COMMENT "[asciidoc] doc/manual.asciidoc"
+    )
+    if (NINJA_XSLTPROC_EXECUTABLE)
+        add_custom_command(
+            DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+            DEPENDS doc/style.css doc/docbook.xsl
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/manual.html"
+            COMMAND
+                "${NINJA_XSLTPROC_EXECUTABLE}"
+                --nonet
+                --output "${CMAKE_CURRENT_BINARY_DIR}/manual.html"
+                ${CMAKE_CURRENT_SOURCE_DIR}/doc/docbook.xsl
+                "${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+            COMMENT "[xsltproc] ${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+        )
+        list(APPEND manuals ${CMAKE_CURRENT_BINARY_DIR}/manual.html)
+    endif()
+
+    if (NINJA_DBLATEX_EXECUTABLE)
+        add_custom_command(
+            DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+            DEPENDS doc/dblatex.xsl
+            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/manual.pdf"
+            COMMAND
+                "${NINJA_DBLATEX_EXECUTABLE}"
+                -q
+                -o "${CMAKE_CURRENT_BINARY_DIR}/manual.pdf"
+                -p ${CMAKE_CURRENT_SOURCE_DIR}/doc/dblatex.xsl
+                "${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+            COMMENT "[dblatex] ${CMAKE_CURRENT_BINARY_DIR}/manual.xml"
+        )
+        list(APPEND manuals ${CMAKE_CURRENT_BINARY_DIR}/manual.pdf)
+    endif()
+endif()
+
+add_custom_target(manual DEPENDS ${manuals})
 
 install(TARGETS ninja majak RUNTIME DESTINATION bin)
