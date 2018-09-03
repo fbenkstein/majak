@@ -149,6 +149,9 @@ target_compile_definitions(
 add_executable(ninja src/ninja.cc)
 target_link_libraries(ninja libninja)
 
+add_executable(majak src/majak.cc)
+target_link_libraries(majak libninja)
+
 set(
     ninja_test_sources
 
@@ -200,4 +203,4 @@ foreach(perftest_name IN LISTS ninja_perftests)
     target_link_libraries(${perftest_name} libninja)
 endforeach()
 
-install(TARGETS ninja RUNTIME DESTINATION bin)
+install(TARGETS ninja majak RUNTIME DESTINATION bin)
