@@ -5,7 +5,7 @@ compiler:
   - clang
 script:
   - |
-    set -x
+    set -ex
     mkdir build-make
     pushd build-make
     cmake \
@@ -29,3 +29,4 @@ script:
     ctest
     popd
     sha1sum build-{make,ninja}/{ninja,libninja.a}
+    set +ex
