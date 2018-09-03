@@ -3,6 +3,9 @@ cmake_policy(SET CMP0063 NEW)
 
 project(majak LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 enable_testing()
 
 include(CheckSymbolExists)
