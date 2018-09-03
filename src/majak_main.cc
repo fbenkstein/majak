@@ -101,6 +101,55 @@ int CommandBuild(const char* working_dir, int argc, char** argv) {
   argv += optind;
   argc -= optind;
 
+  // If build.ninja is not found in the current working directory, walk up the
+  // directory hierarchy until a build.ninja is found.
+  std::string fallback_dir;
+
+  if (!working_dir) {
+    RealDiskInterface disk_interface;
+    std::string err;
+
+    if (disk_interface.Stat(kInputFile, &err) == 0) {
+      fallback_dir = GetCwd(&err);
+
+      if (fallback_dir.empty()) {
+        Error("cannot determine working directory: %s", err.c_str());
+        return 1;
+      }
+
+      uint64_t slash_bits;
+
+      if (!CanonicalizePath(&fallback_dir, &slash_bits, &err)) {
+        Error("failed to canonicalize '%s': %s", fallback_dir.c_str(),
+              err.c_str());
+        return 1;
+      }
+
+      size_t pos = std::string::npos;
+
+      while (fallback_dir.back() != '/') {
+        pos = fallback_dir.find_last_of('/', pos);
+
+        if (pos == std::string::npos) {
+          break;
+        }
+
+        fallback_dir.resize(pos + 1);
+
+        bool found = disk_interface.Stat(fallback_dir + kInputFile, &err) > 0;
+
+        if (pos > 0) {
+          fallback_dir.resize(pos);
+        }
+
+        if (found) {
+          working_dir = fallback_dir.c_str();
+          break;
+        }
+      }
+    }
+  }
+
   if (working_dir) {
     // The formatting of this string, complete with funny quotes, is
     // so Emacs can properly identify that the cwd has changed for

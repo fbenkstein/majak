@@ -599,3 +599,18 @@ bool Truncate(const string& path, size_t size, string* err) {
   }
   return true;
 }
+
+string GetCwd(string* err) {
+  string cwd;
+
+  do {
+    cwd.resize(cwd.size() + 1024);
+    errno = 0;
+  } while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
+  if (errno != 0 && errno != ERANGE) {
+    *err = strerror(errno);
+    return {};
+  }
+
+  return cwd;
+}

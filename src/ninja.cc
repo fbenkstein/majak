@@ -569,15 +569,12 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
   argc -= optind;
 
   bool first = true;
-  vector<char> cwd;
+  string err;
+  string cwd = GetCwd(&err);
 
-  do {
-    cwd.resize(cwd.size() + 1024);
-    errno = 0;
-  } while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
-  if (errno != 0 && errno != ERANGE) {
-    Error("cannot determine working directory: %s", strerror(errno));
-    return 1;
+  if (cwd.empty()) {
+      Error("cannot determine working directory: %s", err.c_str());
+      return 1;
   }
 
   putchar('[');

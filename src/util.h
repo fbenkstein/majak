@@ -108,4 +108,7 @@ string GetLastErrorString();
 NORETURN void Win32Fatal(const char* function);
 #endif
 
+/// Returns the current working directory. An empty string is returned on error.
+string GetCwd(string* err);
+
 #endif  // NINJA_UTIL_H_
