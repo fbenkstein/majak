@@ -3,12 +3,17 @@ cmake_policy(SET CMP0063 NEW)
 
 project(majak LANGUAGES C CXX)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+find_package(RE2C)
+find_package(PythonInterp 3)
+
+include(CheckSymbolExists)
+include(CheckCXXCompilerFlag)
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 enable_testing()
-
-include(CheckSymbolExists)
 
 set(
     ninja_sources
@@ -33,9 +38,6 @@ set(
     src/util.cc
     src/version.cc
 )
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
-find_package(RE2C)
 
 if (RE2C_FOUND AND RE2C_VERSION VERSION_GREATER 0.11.3)
     re2c_target(
@@ -108,8 +110,6 @@ if (WIN32)
         D_HAS_EXCEPTIONS=0
     )
 else()
-    include(CheckCXXCompilerFlag)
-
     set(
         ninja_compile_options
 
@@ -135,6 +135,38 @@ else()
     if (NINJA_COMPILER_SUPPORTS_COLOR)
         list(APPEND ninja_compile_options -fdiagnostics-color)
     endif()
+endif()
+
+if (PYTHONINTERP_FOUND)
+    list(APPEND
+        ninja_private_compile_definitions
+        NINJA_PYTHON="${PYTHON_EXECUTABLE}"
+        NINJA_HAVE_BROWSE
+    )
+    list(APPEND ninja_sources src/browse.cc)
+
+    add_custom_command(
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
+        DEPENDS src/browse.py cmake/inline.cmake
+        COMMAND
+            "${CMAKE_COMMAND}"
+            -DINPUT=src/browse.py
+            -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
+            -DVARNAME=kBrowsePy
+            -P cmake/inline.cmake
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "[inline] src/browse.py"
+    )
+    set_property(
+        SOURCE src/browse.cc
+        PROPERTY
+        OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
+    )
+    set_property(
+        SOURCE src/browse.cc
+        PROPERTY
+        COMPILE_FLAGS "-I${CMAKE_CURRENT_BINARY_DIR}"
+    )
 endif()
 
 add_library(libninja STATIC ${ninja_sources})
