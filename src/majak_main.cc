@@ -244,7 +244,7 @@ NORETURN void real_main(int argc, char** argv) {
                                       { "version", no_argument, nullptr, 'V' },
                                       { nullptr, 0, nullptr, 0 } };
 
-  while ((opt = getopt_long(argc, argv, "C:hV", kLongOptions, nullptr)) != -1) {
+  while ((opt = getopt_long(argc, argv, "+C:hV", kLongOptions, nullptr)) != -1) {
     switch (opt) {
     case 'C':
       working_dir = optarg;
