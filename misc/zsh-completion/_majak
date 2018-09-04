@@ -1,0 +1,55 @@
+#compdef majak
+_majak() {
+    _majak_commands() {
+        local commands=(
+            'build:build something'
+            'version:show version'
+        )
+        _describe command commands
+    }
+
+    __get_targets() {
+        dir="."
+        if [ -n "${opt_args[-C]}" ];
+        then
+            eval dir="${opt_args[-C]}"
+        fi
+        file="build.ninja"
+        if [ -n "${opt_args[-f]}" ];
+        then
+            eval file="${opt_args[-f]}"
+        fi
+        targets_command="ninja -f \"${file}\" -C \"${dir}\" -t targets all"
+        eval ${targets_command} 2>/dev/null | cut -d: -f1
+    }
+
+    __targets() {
+        local -a targets
+        targets=(${(fo)"$(__get_targets)"})
+        _describe 'targets' targets
+    }
+
+    _arguments \
+        '(- 1 *)'{-h,--help}'[show help message]' \
+        '(- 1 *)'{-V,--version}'[show version information]' \
+        '(- 1 *)-C+[Change to directory before doing anything else]:directories:_directories' \
+        '1:command:_majak_commands' \
+        '*:: :->args'
+
+    case $state in
+        args)
+            case $words[1] in
+                build)
+                    _arguments \
+                        '-j+[Run N jobs in parallel (default=number of CPUs available)]:number of jobs' \
+                        '-k+[Keep going until N jobs fail (default=1)]:number of jobs' \
+                        '-n[Dry run (do not run commands but act like they succeeded)]' \
+                        '-v[Show all command lines while building]' \
+                        '*::targets:__targets'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_majak
