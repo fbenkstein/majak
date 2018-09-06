@@ -78,11 +78,17 @@ struct NinjaMain : public BuildLogUser {
 
   /// Get the Node for a given command-line path, handling features like
   /// spell correction.
+  /// If \a source_dwim is true then nodes without inputs will be replaced by
+  /// there first output.
+  Node* CollectTarget(const char* cpath, bool source_dwim, string* err);
   Node* CollectTarget(const char* cpath, string* err);
 
   /// CollectTarget for all command-line arguments, filling in \a targets.
+  /// @see CollectTarget for the meaning of \a source_dwim
   bool CollectTargetsFromArgs(int argc, char* argv[], vector<Node*>* targets,
                               string* err);
+  bool CollectTargetsFromArgs(int argc, char* argv[], bool source_dwim,
+                              vector<Node*>* targets, string* err);
 
   // The various subcommands, run via "-t XXX".
   int ToolGraph(const Options* options, int argc, char* argv[]);
@@ -115,8 +121,9 @@ struct NinjaMain : public BuildLogUser {
   bool RebuildManifest(const char* input_file, string* err);
 
   /// Build the targets listed on the command line.
+  /// @see CollectTarget for the meaning of \a source_dwim
   /// @return an exit code.
-  int RunBuild(int argc, char** argv);
+  int RunBuild(int argc, char** argv, bool source_dwim = false);
 
   /// Dump the output requested by '-d stats'.
   void DumpMetrics();

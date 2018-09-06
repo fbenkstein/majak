@@ -112,7 +112,7 @@ bool NinjaMain::RebuildManifest(const char* input_file, string* err) {
   return true;
 }
 
-Node* NinjaMain::CollectTarget(const char* cpath, string* err) {
+Node* NinjaMain::CollectTarget(const char* cpath, bool source_dwim, string* err) {
   string path = cpath;
   uint64_t slash_bits;
   if (!CanonicalizePath(&path, &slash_bits, err))
@@ -138,6 +138,9 @@ Node* NinjaMain::CollectTarget(const char* cpath, string* err) {
         Fatal("edge has no outputs");
       }
       node = edge->outputs_[0];
+    } else if (source_dwim && !node->in_edge() && !node->out_edges().empty()) {
+      Edge* edge = node->out_edges()[0];
+      node = edge->outputs_[0];
     }
     return node;
   } else {
@@ -157,7 +160,11 @@ Node* NinjaMain::CollectTarget(const char* cpath, string* err) {
   }
 }
 
-bool NinjaMain::CollectTargetsFromArgs(int argc, char* argv[],
+Node* NinjaMain::CollectTarget(const char* cpath, string* err) {
+  return CollectTarget(cpath, false, err);
+}
+
+bool NinjaMain::CollectTargetsFromArgs(int argc, char* argv[], bool source_dwim,
                                        vector<Node*>* targets, string* err) {
   if (argc == 0) {
     *targets = state_.DefaultNodes(err);
@@ -165,12 +172,17 @@ bool NinjaMain::CollectTargetsFromArgs(int argc, char* argv[],
   }
 
   for (int i = 0; i < argc; ++i) {
-    Node* node = CollectTarget(argv[i], err);
+      Node* node = CollectTarget(argv[i], source_dwim, err);
     if (node == NULL)
       return false;
     targets->push_back(node);
   }
   return true;
+}
+
+bool NinjaMain::CollectTargetsFromArgs(int argc, char* argv[],
+                                       vector<Node*>* targets, string* err) {
+  return CollectTargetsFromArgs(argc, argv, false, targets, err);
 }
 
 int NinjaMain::ToolGraph(const Options* options, int argc, char* argv[]) {
@@ -865,10 +877,10 @@ bool NinjaMain::EnsureBuildDirExists() {
   return true;
 }
 
-int NinjaMain::RunBuild(int argc, char** argv) {
+int NinjaMain::RunBuild(int argc, char** argv, bool source_dwim) {
   string err;
   vector<Node*> targets;
-  if (!CollectTargetsFromArgs(argc, argv, &targets, &err)) {
+  if (!CollectTargetsFromArgs(argc, argv, source_dwim, &targets, &err)) {
     Error("%s", err.c_str());
     return 1;
   }

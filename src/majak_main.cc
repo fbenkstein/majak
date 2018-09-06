@@ -196,7 +196,7 @@ int CommandBuild(const char* working_dir, int argc, char** argv) {
       exit(1);
     }
 
-    int result = ninja.RunBuild(argc, argv);
+    int result = ninja.RunBuild(argc, argv, true);
     if (g_metrics)
       ninja.DumpMetrics();
     exit(result);
