@@ -26,5 +26,3 @@ cmake \
 cmake --build . -- -v
 ctest
 popd
-
-sha1sum build-{make,ninja}/{ninja,libninja.a}
