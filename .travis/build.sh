@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-# build with make first
+# build only ninja with make first
 mkdir build-make
 pushd build-make
 cmake \
@@ -14,7 +14,7 @@ cmake --build . -- ninja
 export NINJA=$PWD/ninja
 popd
 
-# build with ninja second
+# build everything with ninja second
 mkdir build-ninja
 pushd build-ninja
 cmake \
