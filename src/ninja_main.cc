@@ -24,6 +24,7 @@
 #else
 #include <getopt.h>
 #include <unistd.h>
+#include <errno.h>
 #endif
 
 #include "ninja.h"
