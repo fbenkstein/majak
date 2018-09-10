@@ -86,7 +86,7 @@ if (NOT NINJA_HAS_GETOPT)
     list(APPEND ninja_sources src/getopt.c)
 endif()
 
-if (WIN32)
+if (MSVC)
     set(
         ninja_compile_options
 
@@ -105,14 +105,6 @@ if (WIN32)
         # We never have strings or arrays larger than 2**31.
         /wd4267
     )
-
-    set(
-        ninja_compile_definitions
-
-        DNOMINMAX
-        D_CRT_SECURE_NO_WARNINGS
-        D_HAS_EXCEPTIONS=0
-    )
 else()
     set(
         ninja_compile_options
@@ -123,22 +115,38 @@ else()
         -Wno-missing-field-initializers
         -Wno-unused-parameter
         -Wno-implicit-fallthrough
-        -fno-rtti
         -fno-exceptions
         -iquote "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
 
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        list(APPEND ninja_compile_definitions _GLIBCXX_DEBUG _GLIBCXX_DEBUG_PEDANTIC)
+    else()
+        list(APPEND ninja_compile_options -fno-rtti)
+    endif()
+
     check_symbol_exists(ppoll poll.h NINJA_HAS_PPOLL)
 
     if (NINJA_HAS_PPOLL)
-        set(ninja_compile_definitions USE_PPOLL)
+        list(APPEND ninja_compile_definitions USE_PPOLL)
     endif()
 
     check_cxx_compiler_flag(-fdiagnostics-color NINJA_COMPILER_SUPPORTS_COLOR)
 
     if (NINJA_COMPILER_SUPPORTS_COLOR)
-        list(APPEND ninja_compile_options -fdiagnostics-color)
+        list(APPEND ninja_compile_options -fdiagnostics-color=always)
     endif()
+endif()
+
+
+if (WIN32)
+    list(APPEND
+        ninja_compile_definitions
+
+        DNOMINMAX
+        D_CRT_SECURE_NO_WARNINGS
+        D_HAS_EXCEPTIONS=0
+    )
 endif()
 
 if (PYTHONINTERP_FOUND)
