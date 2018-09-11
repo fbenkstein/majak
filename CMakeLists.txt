@@ -13,9 +13,49 @@ find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
 
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
+include(CheckCXXSourceCompiles)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+check_cxx_source_compiles([=[
+    #include <filesystem>
+
+    namespace fs = std::filesystem;
+
+    int main()
+    {
+        fs::path p = fs::current_path( );
+    }
+    ]=]
+    NINJA_HAS_STD_FILESYSTEM
+)
+
+if (NOT NINJA_HAS_STD_FILESYSTEM)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(FILESYSTEM_LIBRARY stdc++fs)
+        set(CMAKE_REQUIRED_LIBRARIES "${FILESYSTEM_LIBRARY}")
+    endif()
+
+    check_cxx_source_compiles([=[
+        #include <experimental/filesystem>
+
+        namespace fs = std::experimental::filesystem;
+
+        int main()
+        {
+            fs::path p = fs::current_path( );
+        }
+        ]=]
+        NINJA_HAS_EXPERIMENTAL_FILESYSTEM
+    )
+
+    unset(CMAKE_REQUIRED_LIBRARIES)
+endif()
+
+if (NOT NINJA_HAS_STD_FILESYSTEM AND NOT NINJA_HAS_EXPERIMENTAL_FILESYSTEM)
+    message(FATAL_ERROR "Need support for <filesystem> or <experimental/filesystem>")
+endif()
 
 enable_testing()
 
@@ -138,7 +178,6 @@ else()
     endif()
 endif()
 
-
 if (WIN32)
     list(APPEND
         ninja_compile_definitions
@@ -190,6 +229,10 @@ target_compile_definitions(
     PUBLIC ${ninja_compile_definitions}
     PRIVATE ${ninja_private_compile_definitions}
 )
+
+if (FILESYSTEM_LIBRARY)
+    target_link_libraries(libninja PRIVATE "${FILESYSTEM_LIBRARY}")
+endif()
 
 add_executable(ninja src/ninja_main.cc)
 target_link_libraries(ninja libninja)
