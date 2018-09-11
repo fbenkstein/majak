@@ -13,6 +13,7 @@ find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
 
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
+include(FeatureSummary)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -108,6 +109,12 @@ else()
     list(APPEND ninja_sources src/depfile_parser.cc src/lexer.cc)
 endif()
 
+set_package_properties(RE2C PROPERTIES
+    TYPE OPTIONAL
+    DESCRIPTION "re2c is a free and open-source software lexer generator for C."
+    PURPOSE "Enables generation of manifest lexer and depfile parser."
+)
+
 if (WIN32)
     list(APPEND
         ninja_sources
@@ -139,8 +146,17 @@ check_cxx_source_compiles(
 )
 
 if (NOT NINJA_HAVE_GETOPT)
+    set(NINJA_OWN_GETOPT TRUE)
     list(APPEND ninja_sources src/getopt.c)
+else()
+    set(NINJA_OWN_GETOPT FALSE)
 endif()
+
+add_feature_info(
+    custom_getopt
+    "${NINJA_OWN_GETOPT}"
+    "custom version of getopt and getopt_long."
+)
 
 if (MSVC)
     set(
@@ -197,7 +213,11 @@ else()
         if (NINJA_HAVE_PPOLL)
             set(NINJA_USE_PPOLL TRUE)
         endif()
+    else()
+        set(NINJA_USE_PPOLL FALSE)
     endif()
+
+    add_feature_info(ppoll "${NINJA_USE_PPOLL}" "fast polling mechanism.")
 
     check_cxx_compiler_flag(-fdiagnostics-color NINJA_COMPILER_SUPPORTS_COLOR)
 
@@ -239,6 +259,12 @@ if (PYTHONINTERP_FOUND)
         OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
     )
 endif()
+
+set_package_properties(PythonInterp PROPERTIES
+    TYPE OPTIONAL
+    DESCRIPTION "Python language intereter."
+    PURPOSE "Enables manifest browser."
+)
 
 configure_file(src/ninja_config.in.h ninja_config.h)
 
@@ -385,3 +411,5 @@ endif()
 add_custom_target(manual DEPENDS ${manuals})
 
 install(TARGETS ninja majak RUNTIME DESTINATION bin)
+
+feature_summary(INCLUDE_QUIET_PACKAGES WHAT ALL)
