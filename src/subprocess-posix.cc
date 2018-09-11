@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ninja_config.h"
 #include "subprocess.h"
 
 #include <assert.h>
@@ -45,12 +46,12 @@ bool Subprocess::Start(SubprocessSet* set, const string& command) {
   if (pipe(output_pipe) < 0)
     Fatal("pipe: %s", strerror(errno));
   fd_ = output_pipe[0];
-#if !defined(USE_PPOLL)
+#if !defined(NINJA_USE_PPOLL)
   // If available, we use ppoll in DoWork(); otherwise we use pselect
   // and so must avoid overly-large FDs.
   if (fd_ >= static_cast<int>(FD_SETSIZE))
     Fatal("pipe: %s", strerror(EMFILE));
-#endif  // !USE_PPOLL
+#endif  // !NINJA_USE_PPOLL
   SetCloseOnExec(fd_);
 
   posix_spawn_file_actions_t action;
@@ -218,7 +219,7 @@ Subprocess *SubprocessSet::Add(const string& command, bool use_console) {
   return subprocess;
 }
 
-#ifdef USE_PPOLL
+#ifdef NINJA_USE_PPOLL
 bool SubprocessSet::DoWork() {
   vector<pollfd> fds;
   nfds_t nfds = 0;
@@ -268,7 +269,7 @@ bool SubprocessSet::DoWork() {
   return IsInterrupted();
 }
 
-#else  // !defined(USE_PPOLL)
+#else  // !defined(NINJA_USE_PPOLL)
 bool SubprocessSet::DoWork() {
   fd_set set;
   int nfds = 0;
@@ -314,7 +315,7 @@ bool SubprocessSet::DoWork() {
 
   return IsInterrupted();
 }
-#endif  // !defined(USE_PPOLL)
+#endif  // !defined(NINJA_USE_PPOLL)
 
 Subprocess* SubprocessSet::NextFinished() {
   if (finished_.empty())

@@ -11,27 +11,34 @@ find_program(NINJA_ASCIIDOC_EXECUTABLE asciidoc)
 find_program(NINJA_XSLTPROC_EXECUTABLE xsltproc)
 find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
 
-include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(
+    NINJA_FORCE_PSELECT
+    [=[
+    ppoll() is used by default where available, 
+    but some platforms may need to use pselect instead'
+    ]=]
+    OFF
+)
+
 check_cxx_source_compiles([=[
     #include <filesystem>
 
     namespace fs = std::filesystem;
 
-    int main()
-    {
-        fs::path p = fs::current_path( );
+    int main() {
+        fs::path p = fs::current_path();
     }
     ]=]
-    NINJA_HAS_STD_FILESYSTEM
+    NINJA_HAVE_STD_FILESYSTEM
 )
 
-if (NOT NINJA_HAS_STD_FILESYSTEM)
+if (NOT NINJA_HAVE_STD_FILESYSTEM)
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         set(FILESYSTEM_LIBRARY stdc++fs)
         set(CMAKE_REQUIRED_LIBRARIES "${FILESYSTEM_LIBRARY}")
@@ -42,18 +49,17 @@ if (NOT NINJA_HAS_STD_FILESYSTEM)
 
         namespace fs = std::experimental::filesystem;
 
-        int main()
-        {
-            fs::path p = fs::current_path( );
+        int main() {
+            fs::path p = fs::current_path();
         }
         ]=]
-        NINJA_HAS_EXPERIMENTAL_FILESYSTEM
+        NINJA_HAVE_EXPERIMENTAL_FILESYSTEM
     )
 
     unset(CMAKE_REQUIRED_LIBRARIES)
 endif()
 
-if (NOT NINJA_HAS_STD_FILESYSTEM AND NOT NINJA_HAS_EXPERIMENTAL_FILESYSTEM)
+if (NOT NINJA_HAVE_STD_FILESYSTEM AND NOT NINJA_HAVE_EXPERIMENTAL_FILESYSTEM)
     message(FATAL_ERROR "Need support for <filesystem> or <experimental/filesystem>")
 endif()
 
@@ -120,9 +126,19 @@ else()
     )
 endif()
 
-check_symbol_exists(getopt getopt.h NINJA_HAS_GETOPT)
+check_cxx_source_compiles(
+    [=[
+    #include <unistd.h>
+    #include <getopt.h>
+    int main(int argc, char** argv) {
+        int i = getopt(argc, argv, "h");
+        int j = getopt_long(argc, argv, "h", nullptr, nullptr);
+    }
+    ]=]
+    NINJA_HAVE_GETOPT
+)
 
-if (NOT NINJA_HAS_GETOPT)
+if (NOT NINJA_HAVE_GETOPT)
     list(APPEND ninja_sources src/getopt.c)
 endif()
 
@@ -165,10 +181,22 @@ else()
         list(APPEND ninja_compile_options -fno-rtti)
     endif()
 
-    check_symbol_exists(ppoll poll.h NINJA_HAS_PPOLL)
+    if (NOT NINJA_FORCE_PSELECT)
+        check_cxx_source_compiles(
+            [=[
+            #include <signal.h>
+            #include <poll.h>
 
-    if (NINJA_HAS_PPOLL)
-        list(APPEND ninja_compile_definitions USE_PPOLL)
+            int main() {
+                int i = ppoll(nullptr, 0, nullptr, nullptr);
+            }
+            ]=]
+            NINJA_HAVE_PPOLL
+        )
+
+        if (NINJA_HAVE_PPOLL)
+            set(NINJA_USE_PPOLL TRUE)
+        endif()
     endif()
 
     check_cxx_compiler_flag(-fdiagnostics-color NINJA_COMPILER_SUPPORTS_COLOR)
@@ -189,11 +217,8 @@ if (WIN32)
 endif()
 
 if (PYTHONINTERP_FOUND)
-    list(APPEND
-        ninja_private_compile_definitions
-        NINJA_PYTHON="${PYTHON_EXECUTABLE}"
-        NINJA_HAVE_BROWSE
-    )
+    set(NINJA_PYTHON "${PYTHON_EXECUTABLE}")
+    set(NINJA_HAVE_BROWSE TRUE)
     list(APPEND ninja_sources src/browse.cc)
 
     add_custom_command(
@@ -213,12 +238,9 @@ if (PYTHONINTERP_FOUND)
         PROPERTY
         OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
     )
-    set_property(
-        SOURCE src/browse.cc
-        PROPERTY
-        COMPILE_FLAGS "-I${CMAKE_CURRENT_BINARY_DIR}"
-    )
 endif()
+
+configure_file(src/ninja_config.in.h ninja_config.h)
 
 add_library(libninja STATIC ${ninja_sources})
 set_property(TARGET libninja PROPERTY PREFIX "")
@@ -229,6 +251,7 @@ target_compile_definitions(
     PUBLIC ${ninja_compile_definitions}
     PRIVATE ${ninja_private_compile_definitions}
 )
+target_include_directories(libninja PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
 if (FILESYSTEM_LIBRARY)
     target_link_libraries(libninja PRIVATE "${FILESYSTEM_LIBRARY}")
