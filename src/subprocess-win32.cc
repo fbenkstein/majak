@@ -69,7 +69,7 @@ HANDLE Subprocess::SetupPipe(HANDLE ioport) {
   return output_write_child;
 }
 
-bool Subprocess::Start(SubprocessSet* set, const string& command) {
+bool Subprocess::Start(SubprocessSet* set, const std::string& command) {
   HANDLE child_pipe = SetupPipe(set->ioport_);
 
   SECURITY_ATTRIBUTES security_attributes;
@@ -190,7 +190,7 @@ bool Subprocess::Done() const {
   return pipe_ == NULL;
 }
 
-const string& Subprocess::GetOutput() const {
+const std::string& Subprocess::GetOutput() const {
   return buf_;
 }
 
@@ -221,7 +221,7 @@ BOOL WINAPI SubprocessSet::NotifyInterrupted(DWORD dwCtrlType) {
   return FALSE;
 }
 
-Subprocess* SubprocessSet::Add(const string& command, bool use_console) {
+Subprocess* SubprocessSet::Add(const std::string& command, bool use_console) {
   Subprocess* subprocess = new Subprocess(use_console);
   if (!subprocess->Start(this, command)) {
     delete subprocess;
