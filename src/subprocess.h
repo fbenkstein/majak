@@ -15,10 +15,9 @@
 #ifndef NINJA_SUBPROCESS_H_
 #define NINJA_SUBPROCESS_H_
 
+#include <queue>
 #include <string>
 #include <vector>
-#include <queue>
-using namespace std;
 
 #ifdef _WIN32
 #include <windows.h>
@@ -28,10 +27,10 @@ using namespace std;
 
 // ppoll() exists on FreeBSD, but only on newer versions.
 #ifdef __FreeBSD__
-#  include <sys/param.h>
-#  if defined USE_PPOLL && __FreeBSD_version < 1002000
-#    undef USE_PPOLL
-#  endif
+#include <sys/param.h>
+#if defined USE_PPOLL && __FreeBSD_version < 1002000
+#undef USE_PPOLL
+#endif
 #endif
 
 #include "exit_status.h"
@@ -49,14 +48,14 @@ struct Subprocess {
 
   bool Done() const;
 
-  const string& GetOutput() const;
+  const std::string& GetOutput() const;
 
  private:
   Subprocess(bool use_console);
-  bool Start(struct SubprocessSet* set, const string& command);
+  bool Start(struct SubprocessSet* set, const std::string& command);
   void OnPipeReady();
 
-  string buf_;
+  std::string buf_;
 
 #ifdef _WIN32
   /// Set up pipe_ as the parent-side pipe of the subprocess; return the
@@ -84,13 +83,13 @@ struct SubprocessSet {
   SubprocessSet();
   ~SubprocessSet();
 
-  Subprocess* Add(const string& command, bool use_console = false);
+  Subprocess* Add(const std::string& command, bool use_console = false);
   bool DoWork();
   Subprocess* NextFinished();
   void Clear();
 
-  vector<Subprocess*> running_;
-  queue<Subprocess*> finished_;
+  std::vector<Subprocess*> running_;
+  std::queue<Subprocess*> finished_;
 
 #ifdef _WIN32
   static BOOL WINAPI NotifyInterrupted(DWORD dwCtrlType);
@@ -111,4 +110,4 @@ struct SubprocessSet {
 #endif
 };
 
-#endif // NINJA_SUBPROCESS_H_
+#endif  // NINJA_SUBPROCESS_H_

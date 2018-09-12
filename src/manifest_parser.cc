@@ -27,19 +27,21 @@
 
 ManifestParser::ManifestParser(State* state, FileReader* file_reader,
                                ManifestParserOptions options)
-    : state_(state), file_reader_(file_reader),
-      options_(options), quiet_(false) {
+    : state_(state), file_reader_(file_reader), options_(options),
+      quiet_(false) {
   env_ = &state->bindings_;
 }
 
-bool ManifestParser::Load(const string& filename, string* err, Lexer* parent) {
+bool ManifestParser::Load(const std::string& filename, std::string* err,
+                          Lexer* parent) {
   METRIC_RECORD(".ninja parse");
-  string contents;
-  string read_err;
-  if (file_reader_->ReadFile(filename, &contents, &read_err) != FileReader::Okay) {
+  std::string contents;
+  std::string read_err;
+  if (file_reader_->ReadFile(filename, &contents, &read_err) !=
+      FileReader::Okay) {
     *err = "loading '" + filename + "': " + read_err;
     if (parent)
-      parent->Error(string(*err), err);
+      parent->Error(std::string(*err), err);
     return false;
   }
 
@@ -53,8 +55,8 @@ bool ManifestParser::Load(const string& filename, string* err, Lexer* parent) {
   return Parse(filename, contents, err);
 }
 
-bool ManifestParser::Parse(const string& filename, const string& input,
-                           string* err) {
+bool ManifestParser::Parse(const std::string& filename,
+                           const std::string& input, std::string* err) {
   lexer_.Start(filename, input);
 
   for (;;) {
@@ -78,11 +80,11 @@ bool ManifestParser::Parse(const string& filename, const string& input,
       break;
     case Lexer::IDENT: {
       lexer_.UnreadToken();
-      string name;
+      std::string name;
       EvalString let_value;
       if (!ParseLet(&name, &let_value, err))
         return false;
-      string value = let_value.Evaluate(env_);
+      std::string value = let_value.Evaluate(env_);
       // Check ninja_required_version immediately so we can exit
       // before encountering any syntactic surprises.
       if (name == "ninja_required_version")
@@ -106,16 +108,15 @@ bool ManifestParser::Parse(const string& filename, const string& input,
     case Lexer::NEWLINE:
       break;
     default:
-      return lexer_.Error(string("unexpected ") + Lexer::TokenName(token),
+      return lexer_.Error(std::string("unexpected ") + Lexer::TokenName(token),
                           err);
     }
   }
   return false;  // not reached
 }
 
-
-bool ManifestParser::ParsePool(string* err) {
-  string name;
+bool ManifestParser::ParsePool(std::string* err) {
+  std::string name;
   if (!lexer_.ReadIdent(&name))
     return lexer_.Error("expected pool name", err);
 
@@ -128,13 +129,13 @@ bool ManifestParser::ParsePool(string* err) {
   int depth = -1;
 
   while (lexer_.PeekToken(Lexer::INDENT)) {
-    string key;
+    std::string key;
     EvalString value;
     if (!ParseLet(&key, &value, err))
       return false;
 
     if (key == "depth") {
-      string depth_string = value.Evaluate(env_);
+      std::string depth_string = value.Evaluate(env_);
       depth = atol(depth_string.c_str());
       if (depth < 0)
         return lexer_.Error("invalid pool depth", err);
@@ -150,9 +151,8 @@ bool ManifestParser::ParsePool(string* err) {
   return true;
 }
 
-
-bool ManifestParser::ParseRule(string* err) {
-  string name;
+bool ManifestParser::ParseRule(std::string* err) {
+  std::string name;
   if (!lexer_.ReadIdent(&name))
     return lexer_.Error("expected rule name", err);
 
@@ -165,7 +165,7 @@ bool ManifestParser::ParseRule(string* err) {
   Rule* rule = new Rule(name);  // XXX scoped_ptr
 
   while (lexer_.PeekToken(Lexer::INDENT)) {
-    string key;
+    std::string key;
     EvalString value;
     if (!ParseLet(&key, &value, err))
       return false;
@@ -181,8 +181,10 @@ bool ManifestParser::ParseRule(string* err) {
 
   if (rule->bindings_["rspfile"].empty() !=
       rule->bindings_["rspfile_content"].empty()) {
-    return lexer_.Error("rspfile and rspfile_content need to be "
-                        "both specified", err);
+    return lexer_.Error(
+        "rspfile and rspfile_content need to be "
+        "both specified",
+        err);
   }
 
   if (rule->bindings_["command"].empty())
@@ -192,7 +194,8 @@ bool ManifestParser::ParseRule(string* err) {
   return true;
 }
 
-bool ManifestParser::ParseLet(string* key, EvalString* value, string* err) {
+bool ManifestParser::ParseLet(std::string* key, EvalString* value,
+                              std::string* err) {
   if (!lexer_.ReadIdent(key))
     return lexer_.Error("expected variable name", err);
   if (!ExpectToken(Lexer::EQUALS, err))
@@ -202,7 +205,7 @@ bool ManifestParser::ParseLet(string* key, EvalString* value, string* err) {
   return true;
 }
 
-bool ManifestParser::ParseDefault(string* err) {
+bool ManifestParser::ParseDefault(std::string* err) {
   EvalString eval;
   if (!lexer_.ReadPath(&eval, err))
     return false;
@@ -210,8 +213,8 @@ bool ManifestParser::ParseDefault(string* err) {
     return lexer_.Error("expected target name", err);
 
   do {
-    string path = eval.Evaluate(env_);
-    string path_err;
+    std::string path = eval.Evaluate(env_);
+    std::string path_err;
     uint64_t slash_bits;  // Unused because this only does lookup.
     if (!CanonicalizePath(&path, &slash_bits, &path_err))
       return lexer_.Error(path_err, err);
@@ -229,8 +232,8 @@ bool ManifestParser::ParseDefault(string* err) {
   return true;
 }
 
-bool ManifestParser::ParseEdge(string* err) {
-  vector<EvalString> ins, outs;
+bool ManifestParser::ParseEdge(std::string* err) {
+  std::vector<EvalString> ins, outs;
 
   {
     EvalString out;
@@ -265,7 +268,7 @@ bool ManifestParser::ParseEdge(string* err) {
   if (!ExpectToken(Lexer::COLON, err))
     return false;
 
-  string rule_name;
+  std::string rule_name;
   if (!lexer_.ReadIdent(&rule_name))
     return lexer_.Error("expected build command name", err);
 
@@ -318,7 +321,7 @@ bool ManifestParser::ParseEdge(string* err) {
   bool has_indent_token = lexer_.PeekToken(Lexer::INDENT);
   BindingEnv* env = has_indent_token ? new BindingEnv(env_) : env_;
   while (has_indent_token) {
-    string key;
+    std::string key;
     EvalString val;
     if (!ParseLet(&key, &val, err))
       return false;
@@ -330,7 +333,7 @@ bool ManifestParser::ParseEdge(string* err) {
   Edge* edge = state_->AddEdge(rule);
   edge->env_ = env;
 
-  string pool_name = edge->GetBinding("pool");
+  std::string pool_name = edge->GetBinding("pool");
   if (!pool_name.empty()) {
     Pool* pool = state_->LookupPool(pool_name);
     if (pool == NULL)
@@ -340,8 +343,8 @@ bool ManifestParser::ParseEdge(string* err) {
 
   edge->outputs_.reserve(outs.size());
   for (size_t i = 0, e = outs.size(); i != e; ++i) {
-    string path = outs[i].Evaluate(env);
-    string path_err;
+    std::string path = outs[i].Evaluate(env);
+    std::string path_err;
     uint64_t slash_bits;
     if (!CanonicalizePath(&path, &slash_bits, &path_err))
       return lexer_.Error(path_err, err);
@@ -352,10 +355,11 @@ bool ManifestParser::ParseEdge(string* err) {
         return false;
       } else {
         if (!quiet_) {
-          Warning("multiple rules generate %s. "
-                  "builds involving this target will not be correct; "
-                  "continuing anyway [-w dupbuild=warn]",
-                  path.c_str());
+          Warning(
+              "multiple rules generate %s. "
+              "builds involving this target will not be correct; "
+              "continuing anyway [-w dupbuild=warn]",
+              path.c_str());
         }
         if (e - i <= static_cast<size_t>(implicit_outs))
           --implicit_outs;
@@ -372,9 +376,9 @@ bool ManifestParser::ParseEdge(string* err) {
   edge->implicit_outs_ = implicit_outs;
 
   edge->inputs_.reserve(ins.size());
-  for (vector<EvalString>::iterator i = ins.begin(); i != ins.end(); ++i) {
-    string path = i->Evaluate(env);
-    string path_err;
+  for (std::vector<EvalString>::iterator i = ins.begin(); i != ins.end(); ++i) {
+    std::string path = i->Evaluate(env);
+    std::string path_err;
     uint64_t slash_bits;
     if (!CanonicalizePath(&path, &slash_bits, &path_err))
       return lexer_.Error(path_err, err);
@@ -390,34 +394,36 @@ bool ManifestParser::ParseEdge(string* err) {
     // build graph but that has since been fixed.  Filter them out to
     // support users of those old CMake versions.
     Node* out = edge->outputs_[0];
-    vector<Node*>::iterator new_end =
+    std::vector<Node*>::iterator new_end =
         remove(edge->inputs_.begin(), edge->inputs_.end(), out);
     if (new_end != edge->inputs_.end()) {
       edge->inputs_.erase(new_end, edge->inputs_.end());
       if (!quiet_) {
-        Warning("phony target '%s' names itself as an input; "
-                "ignoring [-w phonycycle=warn]",
-                out->path().c_str());
+        Warning(
+            "phony target '%s' names itself as an input; "
+            "ignoring [-w phonycycle=warn]",
+            out->path().c_str());
       }
     }
   }
 
   // Multiple outputs aren't (yet?) supported with depslog.
-  string deps_type = edge->GetBinding("deps");
+  std::string deps_type = edge->GetBinding("deps");
   if (!deps_type.empty() && edge->outputs_.size() > 1) {
-    return lexer_.Error("multiple outputs aren't (yet?) supported by depslog; "
-                        "bring this up on the mailing list if it affects you",
-                        err);
+    return lexer_.Error(
+        "multiple outputs aren't (yet?) supported by depslog; "
+        "bring this up on the mailing list if it affects you",
+        err);
   }
 
   return true;
 }
 
-bool ManifestParser::ParseFileInclude(bool new_scope, string* err) {
+bool ManifestParser::ParseFileInclude(bool new_scope, std::string* err) {
   EvalString eval;
   if (!lexer_.ReadPath(&eval, err))
     return false;
-  string path = eval.Evaluate(env_);
+  std::string path = eval.Evaluate(env_);
 
   ManifestParser subparser(state_, file_reader_, options_);
   if (new_scope) {
@@ -435,11 +441,11 @@ bool ManifestParser::ParseFileInclude(bool new_scope, string* err) {
   return true;
 }
 
-bool ManifestParser::ExpectToken(Lexer::Token expected, string* err) {
+bool ManifestParser::ExpectToken(Lexer::Token expected, std::string* err) {
   Lexer::Token token = lexer_.ReadToken();
   if (token != expected) {
-    string message = string("expected ") + Lexer::TokenName(expected);
-    message += string(", got ") + Lexer::TokenName(token);
+    std::string message = std::string("expected ") + Lexer::TokenName(expected);
+    message += std::string(", got ") + Lexer::TokenName(token);
     message += Lexer::TokenErrorHint(expected);
     return lexer_.Error(message, err);
   }

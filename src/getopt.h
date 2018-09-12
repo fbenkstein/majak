@@ -1,3 +1,4 @@
+// clang-format off
 #ifndef GETOPT_H
 #define GETOPT_H
 

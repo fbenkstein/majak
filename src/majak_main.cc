@@ -21,9 +21,9 @@
 #include <windows.h>
 #include "getopt.h"
 #else
+#include <errno.h>
 #include <getopt.h>
 #include <unistd.h>
-#include <errno.h>
 #endif
 
 #include "manifest_parser.h"
@@ -171,7 +171,7 @@ int CommandBuild(const char* working_dir, int argc, char** argv) {
     parser_opts.phony_cycle_action_ = kPhonyCycleActionError;
     ManifestParser parser(&ninja.state_, &ninja.disk_interface_, parser_opts);
 
-    string err;
+    std::string err;
     if (!parser.Load(kInputFile, &err)) {
       Error("%s", err.c_str());
       exit(1);
@@ -245,7 +245,8 @@ NORETURN void real_main(int argc, char** argv) {
                                       { "version", no_argument, nullptr, 'V' },
                                       { nullptr, 0, nullptr, 0 } };
 
-  while ((opt = getopt_long(argc, argv, "+C:hV", kLongOptions, nullptr)) != -1) {
+  while ((opt = getopt_long(argc, argv, "+C:hV", kLongOptions, nullptr)) !=
+         -1) {
     switch (opt) {
     case 'C':
       working_dir = optarg;

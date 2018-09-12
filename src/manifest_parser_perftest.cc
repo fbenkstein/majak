@@ -23,8 +23,8 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "getopt.h"
 #include <direct.h>
+#include "getopt.h"
 #else
 #include <getopt.h>
 #include <unistd.h>
@@ -37,14 +37,15 @@
 #include "state.h"
 #include "util.h"
 
-bool WriteFakeManifests(const string& dir, string* err) {
+bool WriteFakeManifests(const std::string& dir, std::string* err) {
   RealDiskInterface disk_interface;
   TimeStamp mtime = disk_interface.Stat(dir + "/build.ninja", err);
   if (mtime != 0)  // 0 means that the file doesn't exist yet.
     return mtime != -1;
 
-  string command = "python misc/write_fake_manifests.py " + dir;
-  printf("Creating manifest data..."); fflush(stdout);
+  std::string command = "python misc/write_fake_manifests.py " + dir;
+  printf("Creating manifest data...");
+  fflush(stdout);
   int exit_code = system(command.c_str());
   printf("done.\n");
   if (exit_code != 0)
@@ -53,7 +54,7 @@ bool WriteFakeManifests(const string& dir, string* err) {
 }
 
 int LoadManifests(bool measure_command_evaluation) {
-  string err;
+  std::string err;
   RealDiskInterface disk_interface;
   State state;
   ManifestParser parser(&state, &disk_interface);
@@ -81,18 +82,19 @@ int main(int argc, char* argv[]) {
       break;
     case 'h':
     default:
-      printf("usage: manifest_parser_perftest\n"
-"\n"
-"options:\n"
-"  -f     only measure manifest load time, not command evaluation time\n"
-             );
-    return 1;
+      printf(
+          "usage: manifest_parser_perftest\n"
+          "\n"
+          "options:\n"
+          "  -f     only measure manifest load time, not command evaluation "
+          "time\n");
+      return 1;
     }
   }
 
   const char kManifestDir[] = "build/manifest_perftest";
 
-  string err;
+  std::string err;
   if (!WriteFakeManifests(kManifestDir, &err)) {
     fprintf(stderr, "Failed to write test data: %s\n", err.c_str());
     return 1;
@@ -102,7 +104,7 @@ int main(int argc, char* argv[]) {
     Fatal("chdir: %s", strerror(errno));
 
   const int kNumRepetitions = 5;
-  vector<int> times;
+  std::vector<int> times;
   for (int i = 0; i < kNumRepetitions; ++i) {
     int64_t start = GetTimeMillis();
     int optimization_guard = LoadManifests(measure_command_evaluation);

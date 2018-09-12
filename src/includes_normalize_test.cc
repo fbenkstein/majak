@@ -27,7 +27,7 @@ namespace {
 string GetCurDir() {
   char buf[_MAX_PATH];
   _getcwd(buf, sizeof(buf));
-  vector<StringPiece> parts = SplitStringPiece(buf, '\\');
+  std::vector<StringPiece> parts = SplitStringPiece(buf, '\\');
   return parts[parts.size() - 1].AsString();
 }
 
@@ -104,10 +104,8 @@ TEST(IncludesNormalize, LongInvalidPath) {
   // Too long, won't be canonicalized. Ensure doesn't crash.
   string result, err;
   IncludesNormalize normalizer(".");
-  EXPECT_FALSE(
-      normalizer.Normalize(kLongInputString, &result, &err));
+  EXPECT_FALSE(normalizer.Normalize(kLongInputString, &result, &err));
   EXPECT_EQ("path too long", err);
-
 
   // Construct max size path having cwd prefix.
   // kExactlyMaxPath = "$cwd\\a\\aaaa...aaaa\0";

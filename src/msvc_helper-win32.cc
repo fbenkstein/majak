@@ -20,7 +20,8 @@
 
 namespace {
 
-string Replace(const string& input, const string& find, const string& replace) {
+string Replace(const std::string& input, const std::string& find,
+               const std::string& replace) {
   string result = input;
   size_t start_pos = 0;
   while ((start_pos = result.find(find, start_pos)) != string::npos) {
@@ -32,12 +33,12 @@ string Replace(const string& input, const string& find, const string& replace) {
 
 }  // anonymous namespace
 
-string EscapeForDepfile(const string& path) {
+string EscapeForDepfile(const std::string& path) {
   // Depfiles don't escape single \.
   return Replace(path, " ", "\\ ");
 }
 
-int CLWrapper::Run(const string& command, string* output) {
+int CLWrapper::Run(const std::string& command, string* output) {
   SECURITY_ATTRIBUTES security_attributes = {};
   security_attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
   security_attributes.bInheritHandle = TRUE;
@@ -66,14 +67,12 @@ int CLWrapper::Run(const string& command, string* output) {
   startup_info.dwFlags |= STARTF_USESTDHANDLES;
 
   if (!CreateProcessA(NULL, (char*)command.c_str(), NULL, NULL,
-                      /* inherit handles */ TRUE, 0,
-                      env_block_, NULL,
+                      /* inherit handles */ TRUE, 0, env_block_, NULL,
                       &startup_info, &process_info)) {
     Win32Fatal("CreateProcess");
   }
 
-  if (!CloseHandle(nul) ||
-      !CloseHandle(stdout_write)) {
+  if (!CloseHandle(nul) || !CloseHandle(stdout_write)) {
     Win32Fatal("CloseHandle");
   }
 
@@ -96,8 +95,7 @@ int CLWrapper::Run(const string& command, string* output) {
   if (!GetExitCodeProcess(process_info.hProcess, &exit_code))
     Win32Fatal("GetExitCodeProcess");
 
-  if (!CloseHandle(stdout_read) ||
-      !CloseHandle(process_info.hProcess) ||
+  if (!CloseHandle(stdout_read) || !CloseHandle(process_info.hProcess) ||
       !CloseHandle(process_info.hThread)) {
     Win32Fatal("CloseHandle");
   }

@@ -15,12 +15,12 @@
 #include "util.h"
 
 #ifdef __CYGWIN__
-#include <windows.h>
 #include <io.h>
-#elif defined( _WIN32)
 #include <windows.h>
+#elif defined(_WIN32)
 #include <io.h>
 #include <share.h>
+#include <windows.h>
 #endif
 
 #include <assert.h>
@@ -34,8 +34,8 @@
 #include <sys/types.h>
 
 #ifndef _WIN32
-#include <unistd.h>
 #include <sys/time.h>
+#include <unistd.h>
 #endif
 
 #include <vector>
@@ -43,8 +43,8 @@
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/sysctl.h>
 #elif defined(__SVR4) && defined(__sun)
-#include <unistd.h>
 #include <sys/loadavg.h>
+#include <unistd.h>
 #elif defined(_AIX)
 #include <libperfstat.h>
 #elif defined(linux) || defined(__GLIBC__)
@@ -90,7 +90,8 @@ void Error(const char* msg, ...) {
   fprintf(stderr, "\n");
 }
 
-bool CanonicalizePath(string* path, uint64_t* slash_bits, string* err) {
+bool CanonicalizePath(std::string* path, uint64_t* slash_bits,
+                      std::string* err) {
   METRIC_RECORD("canonicalize str");
   size_t len = path->size();
   char* str = 0;
@@ -111,7 +112,7 @@ static bool IsPathSeparator(char c) {
 }
 
 bool CanonicalizePath(char* path, size_t* len, uint64_t* slash_bits,
-                      string* err) {
+                      std::string* err) {
   // WARNING: this function is performance-critical; please benchmark
   // any changes you make to it.
   METRIC_RECORD("canonicalize path");
@@ -194,12 +195,12 @@ bool CanonicalizePath(char* path, size_t* len, uint64_t* slash_bits,
 
   for (char* c = start; c < start + *len; ++c) {
     switch (*c) {
-      case '\\':
-        bits |= bits_mask;
-        *c = '/';
-        // Intentional fallthrough.
-      case '/':
-        bits_mask <<= 1;
+    case '\\':
+      bits |= bits_mask;
+      *c = '/';
+      // Intentional fallthrough.
+    case '/':
+      bits_mask <<= 1;
     }
   }
 
@@ -211,47 +212,52 @@ bool CanonicalizePath(char* path, size_t* len, uint64_t* slash_bits,
 }
 
 static inline bool IsKnownShellSafeCharacter(char ch) {
-  if ('A' <= ch && ch <= 'Z') return true;
-  if ('a' <= ch && ch <= 'z') return true;
-  if ('0' <= ch && ch <= '9') return true;
+  if ('A' <= ch && ch <= 'Z')
+    return true;
+  if ('a' <= ch && ch <= 'z')
+    return true;
+  if ('0' <= ch && ch <= '9')
+    return true;
 
   switch (ch) {
-    case '_':
-    case '+':
-    case '-':
-    case '.':
-    case '/':
-      return true;
-    default:
-      return false;
+  case '_':
+  case '+':
+  case '-':
+  case '.':
+  case '/':
+    return true;
+  default:
+    return false;
   }
 }
 
 static inline bool IsKnownWin32SafeCharacter(char ch) {
   switch (ch) {
-    case ' ':
-    case '"':
-      return false;
-    default:
+  case ' ':
+  case '"':
+    return false;
+  default:
+    return true;
+  }
+}
+
+static inline bool StringNeedsShellEscaping(const std::string& input) {
+  for (size_t i = 0; i < input.size(); ++i) {
+    if (!IsKnownShellSafeCharacter(input[i]))
       return true;
   }
+  return false;
 }
 
-static inline bool StringNeedsShellEscaping(const string& input) {
+static inline bool StringNeedsWin32Escaping(const std::string& input) {
   for (size_t i = 0; i < input.size(); ++i) {
-    if (!IsKnownShellSafeCharacter(input[i])) return true;
+    if (!IsKnownWin32SafeCharacter(input[i]))
+      return true;
   }
   return false;
 }
 
-static inline bool StringNeedsWin32Escaping(const string& input) {
-  for (size_t i = 0; i < input.size(); ++i) {
-    if (!IsKnownWin32SafeCharacter(input[i])) return true;
-  }
-  return false;
-}
-
-void GetShellEscapedString(const string& input, string* result) {
+void GetShellEscapedString(const std::string& input, std::string* result) {
   assert(result);
 
   if (!StringNeedsShellEscaping(input)) {
@@ -264,9 +270,9 @@ void GetShellEscapedString(const string& input, string* result) {
 
   result->push_back(kQuote);
 
-  string::const_iterator span_begin = input.begin();
-  for (string::const_iterator it = input.begin(), end = input.end(); it != end;
-       ++it) {
+  std::string::const_iterator span_begin = input.begin();
+  for (std::string::const_iterator it = input.begin(), end = input.end();
+       it != end; ++it) {
     if (*it == kQuote) {
       result->append(span_begin, it);
       result->append(kEscapeSequence);
@@ -277,8 +283,7 @@ void GetShellEscapedString(const string& input, string* result) {
   result->push_back(kQuote);
 }
 
-
-void GetWin32EscapedString(const string& input, string* result) {
+void GetWin32EscapedString(const std::string& input, std::string* result) {
   assert(result);
   if (!StringNeedsWin32Escaping(input)) {
     result->append(input);
@@ -290,22 +295,22 @@ void GetWin32EscapedString(const string& input, string* result) {
 
   result->push_back(kQuote);
   size_t consecutive_backslash_count = 0;
-  string::const_iterator span_begin = input.begin();
-  for (string::const_iterator it = input.begin(), end = input.end(); it != end;
-       ++it) {
+  std::string::const_iterator span_begin = input.begin();
+  for (std::string::const_iterator it = input.begin(), end = input.end();
+       it != end; ++it) {
     switch (*it) {
-      case kBackslash:
-        ++consecutive_backslash_count;
-        break;
-      case kQuote:
-        result->append(span_begin, it);
-        result->append(consecutive_backslash_count + 1, kBackslash);
-        span_begin = it;
-        consecutive_backslash_count = 0;
-        break;
-      default:
-        consecutive_backslash_count = 0;
-        break;
+    case kBackslash:
+      ++consecutive_backslash_count;
+      break;
+    case kQuote:
+      result->append(span_begin, it);
+      result->append(consecutive_backslash_count + 1, kBackslash);
+      span_begin = it;
+      consecutive_backslash_count = 0;
+      break;
+    default:
+      consecutive_backslash_count = 0;
+      break;
     }
   }
   result->append(span_begin, input.end());
@@ -313,7 +318,7 @@ void GetWin32EscapedString(const string& input, string* result) {
   result->push_back(kQuote);
 }
 
-int ReadFile(const string& path, string* contents, string* err) {
+int ReadFile(const std::string& path, std::string* contents, std::string* err) {
 #ifdef _WIN32
   // This makes a ninja run on a set of 1500 manifest files about 4% faster
   // than using the generic fopen code below.
@@ -372,25 +377,24 @@ void SetCloseOnExec(int fd) {
       perror("fcntl(F_SETFD)");
   }
 #else
-  HANDLE hd = (HANDLE) _get_osfhandle(fd);
-  if (! SetHandleInformation(hd, HANDLE_FLAG_INHERIT, 0)) {
+  HANDLE hd = (HANDLE)_get_osfhandle(fd);
+  if (!SetHandleInformation(hd, HANDLE_FLAG_INHERIT, 0)) {
     fprintf(stderr, "SetHandleInformation(): %s", GetLastErrorString().c_str());
   }
 #endif  // ! _WIN32
 }
 
-
-const char* SpellcheckStringV(const string& text,
-                              const vector<const char*>& words) {
+const char* SpellcheckStringV(const std::string& text,
+                              const std::vector<const char*>& words) {
   const bool kAllowReplacements = true;
   const int kMaxValidEditDistance = 3;
 
   int min_distance = kMaxValidEditDistance + 1;
   const char* result = NULL;
-  for (vector<const char*>::const_iterator i = words.begin();
+  for (std::vector<const char*>::const_iterator i = words.begin();
        i != words.end(); ++i) {
-    int distance = EditDistance(*i, text, kAllowReplacements,
-                                kMaxValidEditDistance);
+    int distance =
+        EditDistance(*i, text, kAllowReplacements, kMaxValidEditDistance);
     if (distance < min_distance) {
       min_distance = distance;
       result = *i;
@@ -404,7 +408,7 @@ const char* SpellcheckString(const char* text, ...) {
   // va_start() with a reference parameter is undefined behavior.
   va_list ap;
   va_start(ap, text);
-  vector<const char*> words;
+  std::vector<const char*> words;
   const char* word;
   while ((word = va_arg(ap, const char*)))
     words.push_back(word);
@@ -417,16 +421,10 @@ string GetLastErrorString() {
   DWORD err = GetLastError();
 
   char* msg_buf;
-  FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        err,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (char*)&msg_buf,
-        0,
-        NULL);
+  FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                     FORMAT_MESSAGE_IGNORE_INSERTS,
+                 NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                 (char*)&msg_buf, 0, NULL);
   string msg = msg_buf;
   LocalFree(msg_buf);
   return msg;
@@ -442,8 +440,8 @@ bool islatinalpha(int c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-string StripAnsiEscapeCodes(const string& in) {
-  string stripped;
+std::string StripAnsiEscapeCodes(const std::string& in) {
+  std::string stripped;
   stripped.reserve(in.size());
 
   for (size_t i = 0; i < in.size(); ++i) {
@@ -454,8 +452,10 @@ string StripAnsiEscapeCodes(const string& in) {
     }
 
     // Only strip CSIs for now.
-    if (i + 1 >= in.size()) break;
-    if (in[i + 1] != '[') continue;  // Not a CSI.
+    if (i + 1 >= in.size())
+      break;
+    if (in[i + 1] != '[')
+      continue;  // Not a CSI.
     i += 2;
 
     // Skip everything up to and including the next [a-zA-Z].
@@ -476,8 +476,8 @@ int GetProcessorCount() {
 }
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-static double CalculateProcessorLoad(uint64_t idle_ticks, uint64_t total_ticks)
-{
+static double CalculateProcessorLoad(uint64_t idle_ticks,
+                                     uint64_t total_ticks) {
   static uint64_t previous_idle_ticks = 0;
   static uint64_t previous_total_ticks = 0;
   static double previous_load = -0.0;
@@ -498,7 +498,7 @@ static double CalculateProcessorLoad(uint64_t idle_ticks, uint64_t total_ticks)
     double load_since_last_call = 1.0 - idle_to_total_ratio;
 
     // Filter/smooth result when possible.
-    if(previous_load > 0) {
+    if (previous_load > 0) {
       load = 0.9 * previous_load + 0.1 * load_since_last_call;
     } else {
       load = load_since_last_call;
@@ -512,10 +512,9 @@ static double CalculateProcessorLoad(uint64_t idle_ticks, uint64_t total_ticks)
   return load;
 }
 
-static uint64_t FileTimeToTickCount(const FILETIME & ft)
-{
+static uint64_t FileTimeToTickCount(const FILETIME& ft) {
   uint64_t high = (((uint64_t)(ft.dwHighDateTime)) << 32);
-  uint64_t low  = ft.dwLowDateTime;
+  uint64_t low = ft.dwLowDateTime;
   return (high | low);
 }
 
@@ -568,21 +567,20 @@ double GetLoadAverage() {
   }
   return loadavg[0];
 }
-#endif // _WIN32
+#endif  // _WIN32
 
-string ElideMiddle(const string& str, size_t width) {
+std::string ElideMiddle(const std::string& str, size_t width) {
   const int kMargin = 3;  // Space for "...".
-  string result = str;
+  std::string result = str;
   if (result.size() + kMargin > width) {
     size_t elide_size = (width - kMargin) / 2;
-    result = result.substr(0, elide_size)
-      + "..."
-      + result.substr(result.size() - elide_size, elide_size);
+    result = result.substr(0, elide_size) + "..." +
+             result.substr(result.size() - elide_size, elide_size);
   }
   return result;
 }
 
-bool Truncate(const string& path, size_t size, string* err) {
+bool Truncate(const std::string& path, size_t size, std::string* err) {
 #ifdef _WIN32
   int fh = _sopen(path.c_str(), _O_RDWR | _O_CREAT, _SH_DENYNO,
                   _S_IREAD | _S_IWRITE);
@@ -600,8 +598,8 @@ bool Truncate(const string& path, size_t size, string* err) {
   return true;
 }
 
-string GetCwd(string* err) {
-  string cwd;
+std::string GetCwd(std::string* err) {
+  std::string cwd;
 
   do {
     cwd.resize(cwd.size() + 1024);

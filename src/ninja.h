@@ -16,9 +16,9 @@
 
 #include "build.h"
 #include "build_log.h"
-#include "state.h"
-#include "disk_interface.h"
 #include "deps_log.h"
+#include "disk_interface.h"
+#include "state.h"
 
 #ifdef _MSC_VER
 // Defined in msvc_helper_main-win32.cc.
@@ -68,7 +68,7 @@ struct NinjaMain : public BuildLogUser {
   RealDiskInterface disk_interface_;
 
   /// The build directory, used for storing the build log etc.
-  string build_dir_;
+  std::string build_dir_;
 
   BuildLog build_log_;
   DepsLog deps_log_;
@@ -80,15 +80,15 @@ struct NinjaMain : public BuildLogUser {
   /// spell correction.
   /// If \a source_dwim is true then nodes without inputs will be replaced by
   /// there first output.
-  Node* CollectTarget(const char* cpath, bool source_dwim, string* err);
-  Node* CollectTarget(const char* cpath, string* err);
+  Node* CollectTarget(const char* cpath, bool source_dwim, std::string* err);
+  Node* CollectTarget(const char* cpath, std::string* err);
 
   /// CollectTarget for all command-line arguments, filling in \a targets.
   /// @see CollectTarget for the meaning of \a source_dwim
-  bool CollectTargetsFromArgs(int argc, char* argv[], vector<Node*>* targets,
-                              string* err);
+  bool CollectTargetsFromArgs(int argc, char* argv[],
+                              std::vector<Node*>* targets, std::string* err);
   bool CollectTargetsFromArgs(int argc, char* argv[], bool source_dwim,
-                              vector<Node*>* targets, string* err);
+                              std::vector<Node*>* targets, std::string* err);
 
   // The various subcommands, run via "-t XXX".
   int ToolGraph(const Options* options, int argc, char* argv[]);
@@ -118,7 +118,7 @@ struct NinjaMain : public BuildLogUser {
   /// Rebuild the manifest, if necessary.
   /// Fills in \a err on error.
   /// @return true if the manifest was rebuilt.
-  bool RebuildManifest(const char* input_file, string* err);
+  bool RebuildManifest(const char* input_file, std::string* err);
 
   /// Build the targets listed on the command line.
   /// @see CollectTarget for the meaning of \a source_dwim
@@ -161,15 +161,15 @@ int GuessParallelism();
 
 /// Find the function to execute for \a tool_name and return it via \a func.
 /// Returns a Tool, or NULL if Ninja should exit.
-const Tool* ChooseTool(const string& tool_name);
+const Tool* ChooseTool(const std::string& tool_name);
 
 /// Enable a debugging mode.  Returns false if Ninja should exit instead
 /// of continuing.
-bool DebugEnable(const string& name);
+bool DebugEnable(const std::string& name);
 
 /// Set a warning flag.  Returns false if Ninja should exit instead  of
 /// continuing.
-bool WarningEnable(const string& name, Options* options);
+bool WarningEnable(const std::string& name, Options* options);
 
 using MainFunction = void (*)(int argc, char** argv);
 

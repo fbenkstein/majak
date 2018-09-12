@@ -27,7 +27,7 @@
 namespace {
 
 bool IsPathSeparator(char c) {
-  return c == '/' ||  c == '\\';
+  return c == '/' || c == '\\';
 }
 
 // Return true if paths a and b are on the same windows drive.
@@ -54,7 +54,7 @@ bool SameDriveFast(StringPiece a, StringPiece b) {
 }
 
 // Return true if paths a and b are on the same Windows drive.
-bool SameDrive(StringPiece a, StringPiece b)  {
+bool SameDrive(StringPiece a, StringPiece b) {
   if (SameDriveFast(a, b)) {
     return true;
   }
@@ -74,9 +74,7 @@ bool SameDrive(StringPiece a, StringPiece b)  {
 // This ignores difference of path separator.
 // This is used not to call very slow GetFullPathName API.
 bool IsFullPathName(StringPiece s) {
-  if (s.size() < 3 ||
-      !islatinalpha(s[0]) ||
-      s[1] != ':' ||
+  if (s.size() < 3 || !islatinalpha(s[0]) || s[1] != ':' ||
       !IsPathSeparator(s[2])) {
     return false;
   }
@@ -88,14 +86,14 @@ bool IsFullPathName(StringPiece s) {
     }
 
     // Check ".".
-    if (i + 1 < s.size() && s[i+1] == '.' &&
-        (i + 2 >= s.size() || IsPathSeparator(s[i+2]))) {
+    if (i + 1 < s.size() && s[i + 1] == '.' &&
+        (i + 2 >= s.size() || IsPathSeparator(s[i + 2]))) {
       return false;
     }
 
     // Check "..".
-    if (i + 2 < s.size() && s[i+1] == '.' && s[i+2] == '.' &&
-        (i + 3 >= s.size() || IsPathSeparator(s[i+3]))) {
+    if (i + 2 < s.size() && s[i + 1] == '.' && s[i + 2] == '.' &&
+        (i + 3 >= s.size() || IsPathSeparator(s[i + 3]))) {
       return false;
     }
   }
@@ -105,7 +103,7 @@ bool IsFullPathName(StringPiece s) {
 
 }  // anonymous namespace
 
-IncludesNormalize::IncludesNormalize(const string& relative_to) {
+IncludesNormalize::IncludesNormalize(const std::string& relative_to) {
   relative_to_ = AbsPath(relative_to);
   split_relative_to_ = SplitStringPiece(relative_to_, '/');
 }
@@ -130,9 +128,9 @@ string IncludesNormalize::AbsPath(StringPiece s) {
 }
 
 string IncludesNormalize::Relativize(
-    StringPiece path, const vector<StringPiece>& start_list) {
+    StringPiece path, const std::vector<StringPiece>& start_list) {
   string abs_path = AbsPath(path);
-  vector<StringPiece> path_list = SplitStringPiece(abs_path, '/');
+  std::vector<StringPiece> path_list = SplitStringPiece(abs_path, '/');
   int i;
   for (i = 0; i < static_cast<int>(min(start_list.size(), path_list.size()));
        ++i) {
@@ -141,7 +139,7 @@ string IncludesNormalize::Relativize(
     }
   }
 
-  vector<StringPiece> rel_list;
+  std::vector<StringPiece> rel_list;
   rel_list.reserve(start_list.size() - i + path_list.size() - i);
   for (int j = 0; j < static_cast<int>(start_list.size() - i); ++j)
     rel_list.push_back("..");
@@ -152,8 +150,8 @@ string IncludesNormalize::Relativize(
   return JoinStringPiece(rel_list, '/');
 }
 
-bool IncludesNormalize::Normalize(const string& input,
-                                  string* result, string* err) const {
+bool IncludesNormalize::Normalize(const std::string& input, string* result,
+                                  std::string* err) const {
   char copy[_MAX_PATH + 1];
   size_t len = input.size();
   if (len > _MAX_PATH) {

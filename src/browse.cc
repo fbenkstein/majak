@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ninja_config.h"
 #include "browse.h"
+#include "ninja_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +46,7 @@ void RunBrowsePython(State* state, const char* ninja_command,
         break;
       }
 
-      std::vector<const char *> command;
+      std::vector<const char*> command;
       command.push_back(NINJA_PYTHON);
       command.push_back("-");
       command.push_back("--ninja-command");
@@ -54,7 +54,7 @@ void RunBrowsePython(State* state, const char* ninja_command,
       command.push_back("-f");
       command.push_back(input_file);
       for (int i = 0; i < argc; i++) {
-          command.push_back(argv[i]);
+        command.push_back(argv[i]);
       }
       command.push_back(NULL);
       execvp(command[0], (char**)&command[0]);

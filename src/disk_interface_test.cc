@@ -31,12 +31,10 @@ struct DiskInterfaceTest : public testing::Test {
     temp_dir_.CreateAndEnter("Ninja-DiskInterfaceTest");
   }
 
-  virtual void TearDown() {
-    temp_dir_.Cleanup();
-  }
+  virtual void TearDown() { temp_dir_.Cleanup(); }
 
   bool Touch(const char* path) {
-    FILE *f = fopen(path, "w");
+    FILE* f = fopen(path, "w");
     if (!f)
       return false;
     return fclose(f) == 0;
@@ -47,7 +45,7 @@ struct DiskInterfaceTest : public testing::Test {
 };
 
 TEST_F(DiskInterfaceTest, StatMissingFile) {
-  string err;
+  std::string err;
   EXPECT_EQ(0, disk_.Stat("nosuchfile", &err));
   EXPECT_EQ("", err);
 
@@ -64,27 +62,27 @@ TEST_F(DiskInterfaceTest, StatMissingFile) {
 }
 
 TEST_F(DiskInterfaceTest, StatBadPath) {
-  string err;
+  std::string err;
 #ifdef _WIN32
-  string bad_path("cc:\\foo");
+  std::string bad_path("cc:\\foo");
   EXPECT_EQ(-1, disk_.Stat(bad_path, &err));
   EXPECT_NE("", err);
 #else
-  string too_long_name(512, 'x');
+  std::string too_long_name(512, 'x');
   EXPECT_EQ(-1, disk_.Stat(too_long_name, &err));
   EXPECT_NE("", err);
 #endif
 }
 
 TEST_F(DiskInterfaceTest, StatExistingFile) {
-  string err;
+  std::string err;
   ASSERT_TRUE(Touch("file"));
   EXPECT_GT(disk_.Stat("file", &err), 1);
   EXPECT_EQ("", err);
 }
 
 TEST_F(DiskInterfaceTest, StatExistingDir) {
-  string err;
+  std::string err;
   ASSERT_TRUE(disk_.MakeDir("subdir"));
   ASSERT_TRUE(disk_.MakeDir("subdir/subsubdir"));
   EXPECT_GT(disk_.Stat("..", &err), 1);
@@ -96,8 +94,7 @@ TEST_F(DiskInterfaceTest, StatExistingDir) {
   EXPECT_GT(disk_.Stat("subdir/subsubdir", &err), 1);
   EXPECT_EQ("", err);
 
-  EXPECT_EQ(disk_.Stat("subdir", &err),
-            disk_.Stat("subdir/.", &err));
+  EXPECT_EQ(disk_.Stat("subdir", &err), disk_.Stat("subdir/.", &err));
   EXPECT_EQ(disk_.Stat("subdir", &err),
             disk_.Stat("subdir/subsubdir/..", &err));
   EXPECT_EQ(disk_.Stat("subdir/subsubdir", &err),
@@ -106,7 +103,7 @@ TEST_F(DiskInterfaceTest, StatExistingDir) {
 
 #ifdef _WIN32
 TEST_F(DiskInterfaceTest, StatCache) {
-  string err;
+  std::string err;
 
   ASSERT_TRUE(Touch("file1"));
   ASSERT_TRUE(Touch("fiLE2"));
@@ -139,8 +136,7 @@ TEST_F(DiskInterfaceTest, StatCache) {
   EXPECT_GT(disk_.Stat("subdir/subsubdir", &err), 1);
   EXPECT_EQ("", err);
 
-  EXPECT_EQ(disk_.Stat("subdir", &err),
-            disk_.Stat("subdir/.", &err));
+  EXPECT_EQ(disk_.Stat("subdir", &err), disk_.Stat("subdir/.", &err));
   EXPECT_EQ("", err);
   EXPECT_EQ(disk_.Stat("subdir", &err),
             disk_.Stat("subdir/subsubdir/..", &err));
@@ -154,9 +150,11 @@ TEST_F(DiskInterfaceTest, StatCache) {
   // Test error cases.
   string bad_path("cc:\\foo");
   EXPECT_EQ(-1, disk_.Stat(bad_path, &err));
-  EXPECT_NE("", err); err.clear();
+  EXPECT_NE("", err);
+  err.clear();
   EXPECT_EQ(-1, disk_.Stat(bad_path, &err));
-  EXPECT_NE("", err); err.clear();
+  EXPECT_NE("", err);
+  err.clear();
   EXPECT_EQ(0, disk_.Stat("nosuchfile", &err));
   EXPECT_EQ("", err);
   EXPECT_EQ(0, disk_.Stat("nosuchdir/nosuchfile", &err));
@@ -165,12 +163,11 @@ TEST_F(DiskInterfaceTest, StatCache) {
 #endif
 
 TEST_F(DiskInterfaceTest, ReadFile) {
-  string err;
+  std::string err;
   std::string content;
-  ASSERT_EQ(DiskInterface::NotFound,
-            disk_.ReadFile("foobar", &content, &err));
+  ASSERT_EQ(DiskInterface::NotFound, disk_.ReadFile("foobar", &content, &err));
   EXPECT_EQ("", content);
-  EXPECT_NE("", err); // actual value is platform-specific
+  EXPECT_NE("", err);  // actual value is platform-specific
   err.clear();
 
   const char* kTestFile = "testfile";
@@ -180,14 +177,13 @@ TEST_F(DiskInterfaceTest, ReadFile) {
   fprintf(f, "%s", kTestContent);
   ASSERT_EQ(0, fclose(f));
 
-  ASSERT_EQ(DiskInterface::Okay,
-            disk_.ReadFile(kTestFile, &content, &err));
+  ASSERT_EQ(DiskInterface::Okay, disk_.ReadFile(kTestFile, &content, &err));
   EXPECT_EQ(kTestContent, content);
   EXPECT_EQ("", err);
 }
 
 TEST_F(DiskInterfaceTest, MakeDirs) {
-  string path = "path/with/double//slash/";
+  std::string path = "path/with/double//slash/";
   EXPECT_TRUE(disk_.MakeDirs(path.c_str()));
   FILE* f = fopen((path + "a_file").c_str(), "w");
   EXPECT_TRUE(f);
@@ -209,64 +205,63 @@ TEST_F(DiskInterfaceTest, RemoveFile) {
   EXPECT_EQ(1, disk_.RemoveFile("does not exist"));
 }
 
-struct StatTest : public StateTestWithBuiltinRules,
-                  public DiskInterface {
+struct StatTest : public StateTestWithBuiltinRules, public DiskInterface {
   StatTest() : scan_(&state_, NULL, NULL, this) {}
 
   // DiskInterface implementation.
-  virtual TimeStamp Stat(const string& path, string* err) const;
-  virtual bool WriteFile(const string& path, const string& contents) {
+  virtual TimeStamp Stat(const std::string& path, std::string* err) const;
+  virtual bool WriteFile(const std::string& path, const std::string& contents) {
     assert(false);
     return true;
   }
-  virtual bool MakeDir(const string& path) {
+  virtual bool MakeDir(const std::string& path) {
     assert(false);
     return false;
   }
-  virtual Status ReadFile(const string& path, string* contents, string* err) {
+  virtual Status ReadFile(const std::string& path, std::string* contents,
+                          std::string* err) {
     assert(false);
     return NotFound;
   }
-  virtual int RemoveFile(const string& path) {
+  virtual int RemoveFile(const std::string& path) {
     assert(false);
     return 0;
   }
 
   DependencyScan scan_;
-  map<string, TimeStamp> mtimes_;
-  mutable vector<string> stats_;
+  std::map<std::string, TimeStamp> mtimes_;
+  mutable std::vector<std::string> stats_;
 };
 
-TimeStamp StatTest::Stat(const string& path, string* err) const {
+TimeStamp StatTest::Stat(const std::string& path, std::string* err) const {
   stats_.push_back(path);
-  map<string, TimeStamp>::const_iterator i = mtimes_.find(path);
+  std::map<std::string, TimeStamp>::const_iterator i = mtimes_.find(path);
   if (i == mtimes_.end())
     return 0;  // File not found.
   return i->second;
 }
 
 TEST_F(StatTest, Simple) {
-  ASSERT_NO_FATAL_FAILURE(AssertParse(&state_,
-"build out: cat in\n"));
+  ASSERT_NO_FATAL_FAILURE(AssertParse(&state_, "build out: cat in\n"));
 
   Node* out = GetNode("out");
-  string err;
+  std::string err;
   EXPECT_TRUE(out->Stat(this, &err));
   EXPECT_EQ("", err);
   ASSERT_EQ(1u, stats_.size());
   scan_.RecomputeDirty(out, NULL);
   ASSERT_EQ(2u, stats_.size());
   ASSERT_EQ("out", stats_[0]);
-  ASSERT_EQ("in",  stats_[1]);
+  ASSERT_EQ("in", stats_[1]);
 }
 
 TEST_F(StatTest, TwoStep) {
   ASSERT_NO_FATAL_FAILURE(AssertParse(&state_,
-"build out: cat mid\n"
-"build mid: cat in\n"));
+                                      "build out: cat mid\n"
+                                      "build mid: cat in\n"));
 
   Node* out = GetNode("out");
-  string err;
+  std::string err;
   EXPECT_TRUE(out->Stat(this, &err));
   EXPECT_EQ("", err);
   ASSERT_EQ(1u, stats_.size());
@@ -274,19 +269,19 @@ TEST_F(StatTest, TwoStep) {
   ASSERT_EQ(3u, stats_.size());
   ASSERT_EQ("out", stats_[0]);
   ASSERT_TRUE(GetNode("out")->dirty());
-  ASSERT_EQ("mid",  stats_[1]);
+  ASSERT_EQ("mid", stats_[1]);
   ASSERT_TRUE(GetNode("mid")->dirty());
-  ASSERT_EQ("in",  stats_[2]);
+  ASSERT_EQ("in", stats_[2]);
 }
 
 TEST_F(StatTest, Tree) {
   ASSERT_NO_FATAL_FAILURE(AssertParse(&state_,
-"build out: cat mid1 mid2\n"
-"build mid1: cat in11 in12\n"
-"build mid2: cat in21 in22\n"));
+                                      "build out: cat mid1 mid2\n"
+                                      "build mid1: cat in11 in12\n"
+                                      "build mid2: cat in21 in22\n"));
 
   Node* out = GetNode("out");
-  string err;
+  std::string err;
   EXPECT_TRUE(out->Stat(this, &err));
   EXPECT_EQ("", err);
   ASSERT_EQ(1u, stats_.size());
@@ -299,15 +294,15 @@ TEST_F(StatTest, Tree) {
 
 TEST_F(StatTest, Middle) {
   ASSERT_NO_FATAL_FAILURE(AssertParse(&state_,
-"build out: cat mid\n"
-"build mid: cat in\n"));
+                                      "build out: cat mid\n"
+                                      "build mid: cat in\n"));
 
   mtimes_["in"] = 1;
   mtimes_["mid"] = 0;  // missing
   mtimes_["out"] = 1;
 
   Node* out = GetNode("out");
-  string err;
+  std::string err;
   EXPECT_TRUE(out->Stat(this, &err));
   EXPECT_EQ("", err);
   ASSERT_EQ(1u, stats_.size());

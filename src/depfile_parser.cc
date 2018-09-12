@@ -29,7 +29,7 @@
 // otherwise they are passed through verbatim.
 // If anyone actually has depfiles that rely on the more complicated
 // behavior we can adjust this.
-bool DepfileParser::Parse(string* content, string* err) {
+bool DepfileParser::Parse(std::string* content, std::string* err) {
   // in: current parser input point.
   // end: end of input.
   // parsing_targets: whether we are parsing targets or dependencies.
@@ -45,6 +45,7 @@ bool DepfileParser::Parse(string* content, string* err) {
     for (;;) {
       // start: beginning of the current parsed span.
       const char* start = in;
+      // clang-format off
       
     {
       unsigned char yych;
@@ -172,6 +173,7 @@ yy15:
       }
     }
 
+      // clang-format on
     }
 
     int len = (int)(out - filename);

@@ -19,7 +19,7 @@
 #include "eval_env.h"
 #include "util.h"
 
-bool Lexer::Error(const string& message, string* err) {
+bool Lexer::Error(const std::string& message, std::string* err) {
   // Compute line/column.
   int line = 1;
   const char* line_start = input_.str_;
@@ -47,11 +47,11 @@ bool Lexer::Error(const string& message, string* err) {
         break;
       }
     }
-    *err += string(line_start, len);
+    *err += std::string(line_start, len);
     if (truncated)
       *err += "...";
     *err += "\n";
-    *err += string(col, ' ');
+    *err += std::string(col, ' ');
     *err += "^ near here";
   }
 
@@ -70,6 +70,7 @@ void Lexer::Start(StringPiece filename, StringPiece input) {
 }
 
 const char* Lexer::TokenName(Token t) {
+  // clang-format off
   switch (t) {
   case ERROR:    return "lexing error";
   case BUILD:    return "'build'";
@@ -87,6 +88,7 @@ const char* Lexer::TokenName(Token t) {
   case SUBNINJA: return "'subninja'";
   case TEOF:     return "eof";
   }
+  // clang-format on
   return NULL;  // not reached
 }
 
@@ -99,7 +101,7 @@ const char* Lexer::TokenErrorHint(Token expected) {
   }
 }
 
-string Lexer::DescribeLastError() {
+std::string Lexer::DescribeLastError() {
   if (last_token_) {
     switch (last_token_[0]) {
     case '\t':
@@ -120,6 +122,7 @@ Lexer::Token Lexer::ReadToken() {
   Lexer::Token token;
   for (;;) {
     start = p;
+    // clang-format off
     /*!re2c
     re2c:define:YYCTYPE = "unsigned char";
     re2c:define:YYCURSOR = p;
@@ -148,6 +151,7 @@ Lexer::Token Lexer::ReadToken() {
     nul        { token = TEOF;     break; }
     [^]        { token = ERROR;    break; }
     */
+    // clang-format on
   }
 
   last_token_ = start;
@@ -170,6 +174,7 @@ void Lexer::EatWhitespace() {
   const char* q;
   for (;;) {
     ofs_ = p;
+    // clang-format off
     /*!re2c
     [ ]+    { continue; }
     "$\r\n" { continue; }
@@ -177,14 +182,16 @@ void Lexer::EatWhitespace() {
     nul     { break; }
     [^]     { break; }
     */
+    // clang-format on
   }
 }
 
-bool Lexer::ReadIdent(string* out) {
+bool Lexer::ReadIdent(std::string* out) {
   const char* p = ofs_;
   const char* start;
   for (;;) {
     start = p;
+    // clang-format off
     /*!re2c
     varname {
       out->assign(start, p - start);
@@ -195,6 +202,7 @@ bool Lexer::ReadIdent(string* out) {
       return false;
     }
     */
+    // clang-format on
   }
   last_token_ = start;
   ofs_ = p;
@@ -202,12 +210,13 @@ bool Lexer::ReadIdent(string* out) {
   return true;
 }
 
-bool Lexer::ReadEvalString(EvalString* eval, bool path, string* err) {
+bool Lexer::ReadEvalString(EvalString* eval, bool path, std::string* err) {
   const char* p = ofs_;
   const char* q;
   const char* start;
   for (;;) {
     start = p;
+    // clang-format off
     /*!re2c
     [^$ :\r\n|\000]+ {
       eval->AddText(StringPiece(start, p - start));
@@ -268,6 +277,7 @@ bool Lexer::ReadEvalString(EvalString* eval, bool path, string* err) {
       return Error(DescribeLastError(), err);
     }
     */
+    // clang-format off
   }
   last_token_ = start;
   ofs_ = p;

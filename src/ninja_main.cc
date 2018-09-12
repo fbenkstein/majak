@@ -30,116 +30,114 @@
 #include "getopt.h"
 #endif
 
+#include "manifest_parser.h"
 #include "ninja.h"
 #include "version.h"
-#include "manifest_parser.h"
 
 namespace {
 /// Print usage information.
 void Usage(const BuildConfig& config) {
-  fprintf(stderr,
-"usage: ninja [options] [targets...]\n"
-"\n"
-"if targets are unspecified, builds the 'default' target (see manual).\n"
-"\n"
-"options:\n"
-"  --version  print ninja version (\"%s\")\n"
-"\n"
-"  -C DIR   change to DIR before doing anything else\n"
-"  -f FILE  specify input build file [default=build.ninja]\n"
-"\n"
-"  -j N     run N jobs in parallel [default=%d, derived from CPUs available]\n"
-"  -k N     keep going until N jobs fail (0 means infinity) [default=1]\n"
-"  -l N     do not start new jobs if the load average is greater than N\n"
-"  -n       dry run (don't run commands but act like they succeeded)\n"
-"  -v       show all command lines while building\n"
-"\n"
-"  -d MODE  enable debugging (use '-d list' to list modes)\n"
-"  -t TOOL  run a subtool (use '-t list' to list subtools)\n"
-"    terminates toplevel options; further flags are passed to the tool\n"
-"  -w FLAG  adjust warnings (use '-w list' to list warnings)\n",
-          kNinjaVersion, config.parallelism);
+  fprintf(
+      stderr,
+      "usage: ninja [options] [targets...]\n"
+      "\n"
+      "if targets are unspecified, builds the 'default' target (see manual).\n"
+      "\n"
+      "options:\n"
+      "  --version  print ninja version (\"%s\")\n"
+      "\n"
+      "  -C DIR   change to DIR before doing anything else\n"
+      "  -f FILE  specify input build file [default=build.ninja]\n"
+      "\n"
+      "  -j N     run N jobs in parallel [default=%d, derived from CPUs "
+      "available]\n"
+      "  -k N     keep going until N jobs fail (0 means infinity) [default=1]\n"
+      "  -l N     do not start new jobs if the load average is greater than N\n"
+      "  -n       dry run (don't run commands but act like they succeeded)\n"
+      "  -v       show all command lines while building\n"
+      "\n"
+      "  -d MODE  enable debugging (use '-d list' to list modes)\n"
+      "  -t TOOL  run a subtool (use '-t list' to list subtools)\n"
+      "    terminates toplevel options; further flags are passed to the tool\n"
+      "  -w FLAG  adjust warnings (use '-w list' to list warnings)\n",
+      kNinjaVersion, config.parallelism);
 }
-
 
 /// Parse argv for command-line options.
 /// Returns an exit code, or -1 if Ninja should continue.
-int ReadFlags(int* argc, char*** argv,
-              Options* options, BuildConfig* config) {
+int ReadFlags(int* argc, char*** argv, Options* options, BuildConfig* config) {
   config->parallelism = GuessParallelism();
 
   enum { OPT_VERSION = 1 };
-  const option kLongOptions[] = {
-    { "help", no_argument, NULL, 'h' },
-    { "version", no_argument, NULL, OPT_VERSION },
-    { NULL, 0, NULL, 0 }
-  };
+  const option kLongOptions[] = { { "help", no_argument, NULL, 'h' },
+                                  { "version", no_argument, NULL, OPT_VERSION },
+                                  { NULL, 0, NULL, 0 } };
 
   int opt;
   while (!options->tool &&
          (opt = getopt_long(*argc, *argv, "d:f:j:k:l:nt:vw:C:h", kLongOptions,
                             NULL)) != -1) {
     switch (opt) {
-      case 'd':
-        if (!DebugEnable(optarg))
-          return 1;
-        break;
-      case 'f':
-        options->input_file = optarg;
-        break;
-      case 'j': {
-        char* end;
-        int value = strtol(optarg, &end, 10);
-        if (*end != 0 || value <= 0)
-          Fatal("invalid -j parameter");
-        config->parallelism = value;
-        break;
-      }
-      case 'k': {
-        char* end;
-        int value = strtol(optarg, &end, 10);
-        if (*end != 0)
-          Fatal("-k parameter not numeric; did you mean -k 0?");
-
-        // We want to go until N jobs fail, which means we should allow
-        // N failures and then stop.  For N <= 0, INT_MAX is close enough
-        // to infinite for most sane builds.
-        config->failures_allowed = value > 0 ? value : INT_MAX;
-        break;
-      }
-      case 'l': {
-        char* end;
-        double value = strtod(optarg, &end);
-        if (end == optarg)
-          Fatal("-l parameter not numeric: did you mean -l 0.0?");
-        config->max_load_average = value;
-        break;
-      }
-      case 'n':
-        config->dry_run = true;
-        break;
-      case 't':
-        options->tool = ChooseTool(optarg);
-        if (!options->tool)
-          return 0;
-        break;
-      case 'v':
-        config->verbosity = BuildConfig::VERBOSE;
-        break;
-      case 'w':
-        if (!WarningEnable(optarg, options))
-          return 1;
-        break;
-      case 'C':
-        options->working_dir = optarg;
-        break;
-      case OPT_VERSION:
-        printf("%s\n", kNinjaVersion);
-        return 0;
-      case 'h':
-      default:
-        Usage(*config);
+    case 'd':
+      if (!DebugEnable(optarg))
         return 1;
+      break;
+    case 'f':
+      options->input_file = optarg;
+      break;
+    case 'j': {
+      char* end;
+      int value = strtol(optarg, &end, 10);
+      if (*end != 0 || value <= 0)
+        Fatal("invalid -j parameter");
+      config->parallelism = value;
+      break;
+    }
+    case 'k': {
+      char* end;
+      int value = strtol(optarg, &end, 10);
+      if (*end != 0)
+        Fatal("-k parameter not numeric; did you mean -k 0?");
+
+      // We want to go until N jobs fail, which means we should allow
+      // N failures and then stop.  For N <= 0, INT_MAX is close enough
+      // to infinite for most sane builds.
+      config->failures_allowed = value > 0 ? value : INT_MAX;
+      break;
+    }
+    case 'l': {
+      char* end;
+      double value = strtod(optarg, &end);
+      if (end == optarg)
+        Fatal("-l parameter not numeric: did you mean -l 0.0?");
+      config->max_load_average = value;
+      break;
+    }
+    case 'n':
+      config->dry_run = true;
+      break;
+    case 't':
+      options->tool = ChooseTool(optarg);
+      if (!options->tool)
+        return 0;
+      break;
+    case 'v':
+      config->verbosity = BuildConfig::VERBOSE;
+      break;
+    case 'w':
+      if (!WarningEnable(optarg, options))
+        return 1;
+      break;
+    case 'C':
+      options->working_dir = optarg;
+      break;
+    case OPT_VERSION:
+      printf("%s\n", kNinjaVersion);
+      return 0;
+    case 'h':
+    default:
+      Usage(*config);
+      return 1;
     }
   }
   *argv += optind;
@@ -196,7 +194,7 @@ NORETURN void real_main(int argc, char** argv) {
       parser_opts.phony_cycle_action_ = kPhonyCycleActionError;
     }
     ManifestParser parser(&ninja.state_, &ninja.disk_interface_, parser_opts);
-    string err;
+    std::string err;
     if (!parser.Load(options.input_file, &err)) {
       Error("%s", err.c_str());
       exit(1);

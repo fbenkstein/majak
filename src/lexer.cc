@@ -20,7 +20,7 @@
 #include "eval_env.h"
 #include "util.h"
 
-bool Lexer::Error(const string& message, string* err) {
+bool Lexer::Error(const std::string& message, std::string* err) {
   // Compute line/column.
   int line = 1;
   const char* line_start = input_.str_;
@@ -48,11 +48,11 @@ bool Lexer::Error(const string& message, string* err) {
         break;
       }
     }
-    *err += string(line_start, len);
+    *err += std::string(line_start, len);
     if (truncated)
       *err += "...";
     *err += "\n";
-    *err += string(col, ' ');
+    *err += std::string(col, ' ');
     *err += "^ near here";
   }
 
@@ -71,6 +71,7 @@ void Lexer::Start(StringPiece filename, StringPiece input) {
 }
 
 const char* Lexer::TokenName(Token t) {
+  // clang-format off
   switch (t) {
   case ERROR:    return "lexing error";
   case BUILD:    return "'build'";
@@ -88,6 +89,7 @@ const char* Lexer::TokenName(Token t) {
   case SUBNINJA: return "'subninja'";
   case TEOF:     return "eof";
   }
+  // clang-format on
   return NULL;  // not reached
 }
 
@@ -100,7 +102,7 @@ const char* Lexer::TokenErrorHint(Token expected) {
   }
 }
 
-string Lexer::DescribeLastError() {
+std::string Lexer::DescribeLastError() {
   if (last_token_) {
     switch (last_token_[0]) {
     case '\t':
@@ -121,6 +123,7 @@ Lexer::Token Lexer::ReadToken() {
   Lexer::Token token;
   for (;;) {
     start = p;
+    // clang-format off
     
 {
 	unsigned char yych;
@@ -444,6 +447,7 @@ yy70:
 	{ token = SUBNINJA; break; }
 }
 
+    // clang-format on
   }
 
   last_token_ = start;
@@ -466,6 +470,7 @@ void Lexer::EatWhitespace() {
   const char* q;
   for (;;) {
     ofs_ = p;
+    // clang-format off
     
 {
 	unsigned char yych;
@@ -541,14 +546,16 @@ yy87:
 	{ continue; }
 }
 
+    // clang-format off
   }
 }
 
-bool Lexer::ReadIdent(string* out) {
+bool Lexer::ReadIdent(std::string* out) {
   const char* p = ofs_;
   const char* start;
   for (;;) {
     start = p;
+    // clang-format off
     
 {
 	unsigned char yych;
@@ -605,7 +612,7 @@ yy93:
       break;
     }
 }
-
+    // clang-format on
   }
   last_token_ = start;
   ofs_ = p;
@@ -613,12 +620,13 @@ yy93:
   return true;
 }
 
-bool Lexer::ReadEvalString(EvalString* eval, bool path, string* err) {
+bool Lexer::ReadEvalString(EvalString* eval, bool path, std::string* err) {
   const char* p = ofs_;
   const char* q;
   const char* start;
   for (;;) {
     start = p;
+    // clang-format off
     
 {
 	unsigned char yych;
@@ -810,6 +818,7 @@ yy132:
     }
 }
 
+    // clang-format off
   }
   last_token_ = start;
   ofs_ = p;
