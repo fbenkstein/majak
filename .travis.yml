@@ -1,10 +1,25 @@
 sudo: false
 language: cpp
-os:
-  - linux
-  - osx
-compiler:
-  - gcc
-  - clang
+matrix:
+  include:
+    - os: linux
+      env: MATRIX_CC=gcc-7 MATRIX_CXX=g++-7
+      addons:
+        apt:
+          sources: &sources
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
+              key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - gcc-7 g++-7
+    - os: linux
+      env: MATRIX_CC=clang-5 MATRIX_CXX=clang++-5
+      addons:
+        apt:
+          sources: *sources
+          packages:
+            - clang-5.0
+            - libc++-dev
 script:
+  - export CC=$MATRIX_CC CXX=$MATRIX_CXX
   - ./.travis/build.sh

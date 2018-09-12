@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex
 
+cmake --version
+
 # build only ninja with make first
 mkdir build-make
 pushd build-make
