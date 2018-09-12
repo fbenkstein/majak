@@ -192,9 +192,9 @@ if (WIN32)
     list(APPEND
         ninja_compile_definitions
 
-        DNOMINMAX
-        D_CRT_SECURE_NO_WARNINGS
-        D_HAS_EXCEPTIONS=0
+        NOMINMAX
+        _CRT_SECURE_NO_WARNINGS
+        _HAS_EXCEPTIONS=0
     )
 endif()
 
