@@ -146,7 +146,6 @@ else()
 
         -Wall
         -Wextra
-        -Wno-deprecated
         -Wno-missing-field-initializers
         -Wno-unused-parameter
         -Wno-implicit-fallthrough

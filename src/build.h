@@ -190,11 +190,7 @@ struct Builder {
   State* state_;
   const BuildConfig& config_;
   Plan plan_;
-#if __cplusplus < 201703L
-  auto_ptr<CommandRunner> command_runner_;
-#else
-  unique_ptr<CommandRunner> command_runner_;  // auto_ptr was removed in C++17.
-#endif
+  unique_ptr<CommandRunner> command_runner_;
   BuildStatus* status_;
 
  private:
