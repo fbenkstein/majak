@@ -21,6 +21,7 @@
 #include <io.h>
 #include <share.h>
 #include <windows.h>
+#include <direct.h>
 #endif
 
 #include <assert.h>
@@ -417,7 +418,7 @@ const char* SpellcheckString(const char* text, ...) {
 }
 
 #ifdef _WIN32
-string GetLastErrorString() {
+std::string GetLastErrorString() {
   DWORD err = GetLastError();
 
   char* msg_buf;
@@ -425,7 +426,7 @@ string GetLastErrorString() {
                      FORMAT_MESSAGE_IGNORE_INSERTS,
                  NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                  (char*)&msg_buf, 0, NULL);
-  string msg = msg_buf;
+  std::string msg = msg_buf;
   LocalFree(msg_buf);
   return msg;
 }

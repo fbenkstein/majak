@@ -125,6 +125,7 @@ if (MSVC)
     set(
         ninja_compile_options
 
+        /nologo
         /W4  # Highest warning level.
         /WX  # Warnings as errors.
         /wd4530 /wd4100 /wd4706 /wd4244
