@@ -20,8 +20,8 @@
 
 namespace {
 
-string Replace(const std::string& input, const std::string& find,
-               const std::string& replace) {
+std::string Replace(const std::string& input, const std::string& find,
+                    const std::string& replace) {
   std::string result = input;
   size_t start_pos = 0;
   while ((start_pos = result.find(find, start_pos)) != std::string::npos) {
