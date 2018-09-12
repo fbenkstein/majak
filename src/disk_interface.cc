@@ -91,7 +91,8 @@ bool IsWindows7OrLater() {
                            comparison);
 }
 
-bool StatAllFilesInDir(const std::string& dir, map<string, TimeStamp>* stamps,
+bool StatAllFilesInDir(const std::string& dir,
+                       std::map<std::string, TimeStamp>* stamps,
                        std::string* err) {
   // FindExInfoBasic is 30% faster than FindExInfoStandard.
   static bool can_use_basic_info = IsWindows7OrLater();
@@ -112,15 +113,16 @@ bool StatAllFilesInDir(const std::string& dir, map<string, TimeStamp>* stamps,
     return false;
   }
   do {
-    string lowername = ffd.cFileName;
+    std::string lowername = ffd.cFileName;
     if (lowername == "..") {
       // Seems to just copy the timestamp for ".." from ".", which is wrong.
       // This is the case at least on NTFS under Windows 7.
       continue;
     }
-    transform(lowername.begin(), lowername.end(), lowername.begin(), ::tolower);
+    std::transform(lowername.begin(), lowername.end(), lowername.begin(),
+                   ::tolower);
     stamps->insert(
-        make_pair(lowername, TimeStampFromFileTime(ffd.ftLastWriteTime)));
+        std::make_pair(lowername, TimeStampFromFileTime(ffd.ftLastWriteTime)));
   } while (FindNextFileA(find_handle, &ffd));
   FindClose(find_handle);
   return true;
@@ -160,7 +162,7 @@ TimeStamp RealDiskInterface::Stat(const std::string& path,
   // MSDN: "Naming Files, Paths, and Namespaces"
   // http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
   if (!path.empty() && path[0] != '\\' && path.size() > MAX_PATH) {
-    ostringstream err_stream;
+    std::ostringstream err_stream;
     err_stream << "Stat(" << path << "): Filename longer than " << MAX_PATH
                << " characters";
     *err = err_stream.str();
@@ -169,20 +171,20 @@ TimeStamp RealDiskInterface::Stat(const std::string& path,
   if (!use_cache_)
     return StatSingleFile(path, err);
 
-  string dir = DirName(path);
-  string base(path.substr(dir.size() ? dir.size() + 1 : 0));
+  std::string dir = DirName(path);
+  std::string base(path.substr(dir.size() ? dir.size() + 1 : 0));
   if (base == "..") {
     // StatAllFilesInDir does not report any information for base = "..".
     base = ".";
     dir = path;
   }
 
-  transform(dir.begin(), dir.end(), dir.begin(), ::tolower);
-  transform(base.begin(), base.end(), base.begin(), ::tolower);
+  std::transform(dir.begin(), dir.end(), dir.begin(), ::tolower);
+  std::transform(base.begin(), base.end(), base.begin(), ::tolower);
 
   Cache::iterator ci = cache_.find(dir);
   if (ci == cache_.end()) {
-    ci = cache_.insert(make_pair(dir, DirCache())).first;
+    ci = cache_.insert(std::make_pair(dir, DirCache())).first;
     if (!StatAllFilesInDir(dir.empty() ? "." : dir, &ci->second, err)) {
       cache_.erase(ci);
       return -1;
