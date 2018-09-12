@@ -132,7 +132,7 @@ std::string IncludesNormalize::Relativize(
   std::string abs_path = AbsPath(path);
   std::vector<StringPiece> path_list = SplitStringPiece(abs_path, '/');
   int i;
-  for (i = 0; i < static_cast<int>(min(start_list.size(), path_list.size()));
+  for (i = 0; i < static_cast<int>(std::min(start_list.size(), path_list.size()));
        ++i) {
     if (!EqualsCaseInsensitiveASCII(start_list[i], path_list[i])) {
       break;
