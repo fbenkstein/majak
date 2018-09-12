@@ -8,20 +8,19 @@ matrix:
       env: MATRIX_CC=gcc-7 MATRIX_CXX=g++-7
       addons:
         apt:
-          sources: &sources
+          sources:
             - ubuntu-toolchain-r-test
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
-              key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - gcc-7 g++-7
     - os: linux
-      env: MATRIX_CC=clang-5 MATRIX_CXX=clang++-5
+      env: MATRIX_CC=clang-5.0 MATRIX_CXX=clang++-5.0
       addons:
         apt:
-          sources: *sources
+          sources:
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
+              key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-5.0
-            - libc++-dev
+            - clang-5.0 libc++-dev
 script:
   - export CC=$MATRIX_CC CXX=$MATRIX_CXX
   - ./.travis/build.sh
