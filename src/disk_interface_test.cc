@@ -148,7 +148,7 @@ TEST_F(DiskInterfaceTest, StatCache) {
   EXPECT_EQ("", err);
 
   // Test error cases.
-  string bad_path("cc:\\foo");
+  std::string bad_path("cc:\\foo");
   EXPECT_EQ(-1, disk_.Stat(bad_path, &err));
   EXPECT_NE("", err);
   err.clear();
@@ -189,7 +189,7 @@ TEST_F(DiskInterfaceTest, MakeDirs) {
   EXPECT_TRUE(f);
   EXPECT_EQ(0, fclose(f));
 #ifdef _WIN32
-  string path2 = "another\\with\\back\\\\slashes\\";
+  std::string path2 = "another\\with\\back\\\\slashes\\";
   EXPECT_TRUE(disk_.MakeDirs(path2.c_str()));
   FILE* f2 = fopen((path2 + "a_file").c_str(), "w");
   EXPECT_TRUE(f2);
