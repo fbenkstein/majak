@@ -15,7 +15,7 @@ include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 include(FeatureSummary)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(
@@ -26,43 +26,6 @@ option(
     ]=]
     OFF
 )
-
-check_cxx_source_compiles([=[
-    #include <filesystem>
-
-    namespace fs = std::filesystem;
-
-    int main() {
-        fs::path p = fs::current_path();
-    }
-    ]=]
-    NINJA_HAVE_STD_FILESYSTEM
-)
-
-if (NOT NINJA_HAVE_STD_FILESYSTEM)
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        set(FILESYSTEM_LIBRARY stdc++fs)
-        set(CMAKE_REQUIRED_LIBRARIES "${FILESYSTEM_LIBRARY}")
-    endif()
-
-    check_cxx_source_compiles([=[
-        #include <experimental/filesystem>
-
-        namespace fs = std::experimental::filesystem;
-
-        int main() {
-            fs::path p = fs::current_path();
-        }
-        ]=]
-        NINJA_HAVE_EXPERIMENTAL_FILESYSTEM
-    )
-
-    unset(CMAKE_REQUIRED_LIBRARIES)
-endif()
-
-if (NOT NINJA_HAVE_STD_FILESYSTEM AND NOT NINJA_HAVE_EXPERIMENTAL_FILESYSTEM)
-    message(FATAL_ERROR "Need support for <filesystem> or <experimental/filesystem>")
-endif()
 
 enable_testing()
 
