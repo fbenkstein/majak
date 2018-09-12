@@ -14,8 +14,9 @@
 
 #ifdef _MSC_VER
 
-#include <DbgHelp.h>
 #include <windows.h>
+
+#include <DbgHelp.h>
 
 #include "util.h"
 
