@@ -108,9 +108,9 @@ IncludesNormalize::IncludesNormalize(const std::string& relative_to) {
   split_relative_to_ = SplitStringPiece(relative_to_, '/');
 }
 
-string IncludesNormalize::AbsPath(StringPiece s) {
+std::string IncludesNormalize::AbsPath(StringPiece s) {
   if (IsFullPathName(s)) {
-    string result = s.AsString();
+    std::string result = s.AsString();
     for (size_t i = 0; i < result.size(); ++i) {
       if (result[i] == '\\') {
         result[i] = '/';
@@ -127,9 +127,9 @@ string IncludesNormalize::AbsPath(StringPiece s) {
   return result;
 }
 
-string IncludesNormalize::Relativize(
+std::string IncludesNormalize::Relativize(
     StringPiece path, const std::vector<StringPiece>& start_list) {
-  string abs_path = AbsPath(path);
+  std::string abs_path = AbsPath(path);
   std::vector<StringPiece> path_list = SplitStringPiece(abs_path, '/');
   int i;
   for (i = 0; i < static_cast<int>(min(start_list.size(), path_list.size()));
@@ -150,7 +150,7 @@ string IncludesNormalize::Relativize(
   return JoinStringPiece(rel_list, '/');
 }
 
-bool IncludesNormalize::Normalize(const std::string& input, string* result,
+bool IncludesNormalize::Normalize(const std::string& input, std::string* result,
                                   std::string* err) const {
   char copy[_MAX_PATH + 1];
   size_t len = input.size();
@@ -163,7 +163,7 @@ bool IncludesNormalize::Normalize(const std::string& input, string* result,
   if (!CanonicalizePath(copy, &len, &slash_bits, err))
     return false;
   StringPiece partially_fixed(copy, len);
-  string abs_input = AbsPath(partially_fixed);
+  std::string abs_input = AbsPath(partially_fixed);
 
   if (!SameDrive(abs_input, relative_to_)) {
     *result = partially_fixed.AsString();
