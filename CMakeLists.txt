@@ -153,6 +153,7 @@ else()
         if (NINJA_STD_FILESYSTEM_WORKS_WITH_LIBSTDCXXFS)
             set(ninja_filesystem_library stdc++fs)
         endif()
+        unset(CMAKE_REQUIRED_LIBRARIES)
     endif()
 endif()
 
