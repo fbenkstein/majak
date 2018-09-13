@@ -127,7 +127,33 @@ else()
         src/subprocess-posix.cc
     )
 
-    set(FILESYSTEM_LIBRARY stdc++fs)
+    set(
+        std_filesystem_check_source
+        [=[
+        #if __has_include(<filesystem>)
+        #include <filesystem>
+        namespace fs = std::filesystem;
+        #elif __has_include(<experimental/filesystem>)
+        #include <experimental/filesystem>
+        namespace fs = std::experimental::filesystem;
+        #else
+        #error no filesystem library available
+        #endif
+
+        int main() { fs::path p = fs::current_path(); }
+        ]=]
+    )
+
+    check_cxx_source_compiles(std_filesystem_check_source NINJA_STD_FILESYSTEM_WORKS)
+
+    if (NOT NINJA_STD_FILESYSTEM_WITHOUT_LIBSTDCXXFS)
+        set(CMAKE_REQUIRED_LIBRARIES "stdc++fs")
+        check_cxx_source_compiles("${std_filesystem_check_source}" NINJA_STD_FILESYSTEM_WORKS_WITH_LIBSTDCXXFS)
+
+        if (NINJA_STD_FILESYSTEM_WORKS_WITH_LIBSTDCXXFS)
+            set(ninja_filesystem_library stdc++fs)
+        endif()
+    endif()
 endif()
 
 check_cxx_source_compiles(
@@ -276,8 +302,8 @@ target_compile_definitions(
 )
 target_include_directories(libninja PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
-if (FILESYSTEM_LIBRARY)
-    target_link_libraries(libninja PRIVATE "${FILESYSTEM_LIBRARY}")
+if (ninja_filesystem_library)
+    target_link_libraries(libninja PRIVATE "${ninja_filesystem_library}")
 endif()
 
 add_executable(ninja src/ninja_main.cc)
