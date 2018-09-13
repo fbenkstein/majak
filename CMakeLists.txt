@@ -18,6 +18,7 @@ include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 include(FeatureSummary)
 include(GoogleTest)
+include(utils)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -54,6 +55,10 @@ if (NINJA_BUILD_TESTS)
             ]=]
         )
     endif()
+endif()
+
+if (MSVC)
+    fix_default_msvc_settings()
 endif()
 
 set(
