@@ -12,18 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ninja_config.h"
+
 #include <algorithm>
 #include <climits>
 #include <cstring>
 #include <utility>
 
 #ifdef _WIN32
+#include <direct.h>
 #include <windows.h>
-#include "getopt.h"
 #else
 #include <errno.h>
-#include <getopt.h>
 #include <unistd.h>
+#endif
+
+#ifdef NINJA_HAVE_GETOPT
+#include <getopt.h>
+#else
+#include "getopt.h"
 #endif
 
 #include "manifest_parser.h"
