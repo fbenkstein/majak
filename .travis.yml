@@ -13,14 +13,14 @@ matrix:
           packages:
             - gcc-7 g++-7
     - os: linux
-      env: MATRIX_CC=clang-5.0 MATRIX_CXX=clang++-5.0
+      env: MATRIX_CC=clang-6.0 MATRIX_CXX=clang++-6.0
       addons:
         apt:
           sources:
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
-              key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-6.0
           packages:
-            - clang-5.0 libc++-dev
+            - clang-6.0 libc++-dev
 script:
   - export CC=$MATRIX_CC CXX=$MATRIX_CXX
   - ./.travis/build.sh
