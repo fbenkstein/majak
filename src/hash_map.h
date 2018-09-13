@@ -52,7 +52,6 @@ static inline unsigned int MurmurHash2(const void* key, size_t len) {
   return h;
 }
 
-#if (__cplusplus >= 201103L) || (_MSC_VER >= 1900)
 #include <unordered_map>
 
 namespace std {
@@ -67,56 +66,13 @@ struct hash<StringPiece> {
 };
 }  // namespace std
 
-#elif defined(_MSC_VER)
-#include <hash_map>
-
-using stdext::hash_compare;
-using stdext::hash_map;
-
-struct StringPieceCmp : public hash_compare<StringPiece> {
-  size_t operator()(const StringPiece& key) const {
-    return MurmurHash2(key.str_, key.len_);
-  }
-  bool operator()(const StringPiece& a, const StringPiece& b) const {
-    int cmp = memcmp(a.str_, b.str_, min(a.len_, b.len_));
-    if (cmp < 0) {
-      return true;
-    } else if (cmp > 0) {
-      return false;
-    } else {
-      return a.len_ < b.len_;
-    }
-  }
-};
-
-#else
-#include <ext/hash_map>
-
-using __gnu_cxx::hash_map;
-
-namespace __gnu_cxx {
-template <>
-struct hash<StringPiece> {
-  size_t operator()(StringPiece key) const {
-    return MurmurHash2(key.str_, key.len_);
-  }
-};
-}  // namespace __gnu_cxx
-#endif
-
 /// A template for hash_maps keyed by a StringPiece whose string is
 /// owned externally (typically by the values).  Use like:
 /// ExternalStringHash<Foo*>::Type foos; to make foos into a hash
 /// mapping StringPiece => Foo*.
 template <typename V>
 struct ExternalStringHashMap {
-#if (__cplusplus >= 201103L) || (_MSC_VER >= 1900)
   typedef std::unordered_map<StringPiece, V> Type;
-#elif defined(_MSC_VER)
-  typedef hash_map<StringPiece, V, StringPieceCmp> Type;
-#else
-  typedef hash_map<StringPiece, V> Type;
-#endif
 };
 
 #endif  // NINJA_MAP_H_
