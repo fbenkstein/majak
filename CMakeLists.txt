@@ -302,7 +302,11 @@ if (NINJA_BUILD_TESTS)
 
     add_executable(ninja_test ${ninja_test_sources})
     target_link_libraries(ninja_test libninja gtest gtest_main)
-    gtest_discover_tests(ninja_test)
+    if (COMMAND gtest_discover_tests)
+        gtest_discover_tests(ninja_test)
+    else()
+        add_test(NAME ninja_test COMMAND ninja_test)
+    endif()
 
     set(
         ninja_perftests
