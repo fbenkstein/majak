@@ -45,6 +45,15 @@ if (NINJA_BUILD_TESTS)
     enable_testing()
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     add_subdirectory(ext/gtest EXCLUDE_FROM_ALL)
+    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ext/gtest/CMakeLists.txt")
+        message(
+            SEND_ERROR
+            [=[
+ Please run "git submodule update --init"
+ or set option NINJA_BUILD_TESTS to OFF.
+            ]=]
+        )
+    endif()
 endif()
 
 set(
