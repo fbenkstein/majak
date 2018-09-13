@@ -18,7 +18,7 @@
 
 #include <direct.h>
 
-#include "std::string_piece_util.h"
+#include "string_piece_util.h"
 #include "test.h"
 #include "util.h"
 
