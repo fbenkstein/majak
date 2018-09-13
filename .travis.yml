@@ -20,7 +20,7 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-6.0
           packages:
-            - clang-6.0 libc++-dev
+            - clang-6.0 gcc-7 g++-7
 script:
   - export CC=$MATRIX_CC CXX=$MATRIX_CXX
   - ./.travis/build.sh
