@@ -101,67 +101,6 @@ TEST_F(DiskInterfaceTest, StatExistingDir) {
             disk_.Stat("subdir/subsubdir/.", &err));
 }
 
-#ifdef _WIN32
-TEST_F(DiskInterfaceTest, StatCache) {
-  std::string err;
-
-  ASSERT_TRUE(Touch("file1"));
-  ASSERT_TRUE(Touch("fiLE2"));
-  ASSERT_TRUE(disk_.MakeDir("subdir"));
-  ASSERT_TRUE(disk_.MakeDir("subdir/subsubdir"));
-  ASSERT_TRUE(Touch("subdir\\subfile1"));
-  ASSERT_TRUE(Touch("subdir\\SUBFILE2"));
-  ASSERT_TRUE(Touch("subdir\\SUBFILE3"));
-
-  disk_.AllowStatCache(false);
-  TimeStamp parent_stat_uncached = disk_.Stat("..", &err);
-  disk_.AllowStatCache(true);
-
-  EXPECT_GT(disk_.Stat("FIle1", &err), 1);
-  EXPECT_EQ("", err);
-  EXPECT_GT(disk_.Stat("file1", &err), 1);
-  EXPECT_EQ("", err);
-
-  EXPECT_GT(disk_.Stat("subdir/subfile2", &err), 1);
-  EXPECT_EQ("", err);
-  EXPECT_GT(disk_.Stat("sUbdir\\suBFile1", &err), 1);
-  EXPECT_EQ("", err);
-
-  EXPECT_GT(disk_.Stat("..", &err), 1);
-  EXPECT_EQ("", err);
-  EXPECT_GT(disk_.Stat(".", &err), 1);
-  EXPECT_EQ("", err);
-  EXPECT_GT(disk_.Stat("subdir", &err), 1);
-  EXPECT_EQ("", err);
-  EXPECT_GT(disk_.Stat("subdir/subsubdir", &err), 1);
-  EXPECT_EQ("", err);
-
-  EXPECT_EQ(disk_.Stat("subdir", &err), disk_.Stat("subdir/.", &err));
-  EXPECT_EQ("", err);
-  EXPECT_EQ(disk_.Stat("subdir", &err),
-            disk_.Stat("subdir/subsubdir/..", &err));
-  EXPECT_EQ("", err);
-  EXPECT_EQ(disk_.Stat("..", &err), parent_stat_uncached);
-  EXPECT_EQ("", err);
-  EXPECT_EQ(disk_.Stat("subdir/subsubdir", &err),
-            disk_.Stat("subdir/subsubdir/.", &err));
-  EXPECT_EQ("", err);
-
-  // Test error cases.
-  std::string bad_path("cc:\\foo");
-  EXPECT_EQ(-1, disk_.Stat(bad_path, &err));
-  EXPECT_NE("", err);
-  err.clear();
-  EXPECT_EQ(-1, disk_.Stat(bad_path, &err));
-  EXPECT_NE("", err);
-  err.clear();
-  EXPECT_EQ(0, disk_.Stat("nosuchfile", &err));
-  EXPECT_EQ("", err);
-  EXPECT_EQ(0, disk_.Stat("nosuchdir/nosuchfile", &err));
-  EXPECT_EQ("", err);
-}
-#endif
-
 TEST_F(DiskInterfaceTest, ReadFile) {
   std::string err;
   std::string content;

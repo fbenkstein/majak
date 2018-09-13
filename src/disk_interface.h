@@ -65,12 +65,6 @@ struct DiskInterface : public FileReader {
 
 /// Implementation of DiskInterface that actually hits the disk.
 struct RealDiskInterface : public DiskInterface {
-  RealDiskInterface()
-#ifdef _WIN32
-      : use_cache_(false)
-#endif
-  {
-  }
   virtual ~RealDiskInterface() {}
   virtual TimeStamp Stat(const std::string& path, std::string* err) const;
   virtual bool MakeDir(const std::string& path);
@@ -78,21 +72,6 @@ struct RealDiskInterface : public DiskInterface {
   virtual Status ReadFile(const std::string& path, std::string* contents,
                           std::string* err);
   virtual int RemoveFile(const std::string& path);
-
-  /// Whether stat information can be cached.  Only has an effect on Windows.
-  void AllowStatCache(bool allow);
-
- private:
-#ifdef _WIN32
-  /// Whether stat information can be cached.
-  bool use_cache_;
-
-  typedef std::map<std::string, TimeStamp> DirCache;
-  // TODO: Neither a map nor a hashmap seems ideal here.  If the statcache
-  // works out, come up with a better data structure.
-  typedef std::map<std::string, DirCache> Cache;
-  mutable Cache cache_;
-#endif
 };
 
 #endif  // NINJA_DISK_INTERFACE_H_

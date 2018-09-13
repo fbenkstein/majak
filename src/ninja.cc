@@ -738,9 +738,6 @@ bool DebugEnable(const std::string& name) {
   } else if (name == "keeprsp") {
     g_keep_rsp = true;
     return true;
-  } else if (name == "nostatcache") {
-    g_experimental_statcache = false;
-    return true;
   } else {
     const char* suggestion =
         SpellcheckString(name.c_str(), "stats", "explain", "keepdepfile",
@@ -886,8 +883,6 @@ int NinjaMain::RunBuild(int argc, char** argv, bool source_dwim) {
     return 1;
   }
 
-  disk_interface_.AllowStatCache(g_experimental_statcache);
-
   Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
   for (size_t i = 0; i < targets.size(); ++i) {
     if (!builder.AddTarget(targets[i], &err)) {
@@ -900,9 +895,6 @@ int NinjaMain::RunBuild(int argc, char** argv, bool source_dwim) {
       }
     }
   }
-
-  // Make sure restat rules do not see stale timestamps.
-  disk_interface_.AllowStatCache(false);
 
   if (builder.AlreadyUpToDate()) {
     printf("ninja: no work to do.\n");

@@ -79,54 +79,6 @@ TimeStamp StatSingleFile(const std::string& path, std::string* err) {
   }
   return TimeStampFromFileTime(attrs.ftLastWriteTime);
 }
-
-bool IsWindows7OrLater() {
-  OSVERSIONINFOEX version_info = {
-    sizeof(OSVERSIONINFOEX), 6, 1, 0, 0, { 0 }, 0, 0, 0, 0, 0
-  };
-  DWORDLONG comparison = 0;
-  VER_SET_CONDITION(comparison, VER_MAJORVERSION, VER_GREATER_EQUAL);
-  VER_SET_CONDITION(comparison, VER_MINORVERSION, VER_GREATER_EQUAL);
-  return VerifyVersionInfo(&version_info, VER_MAJORVERSION | VER_MINORVERSION,
-                           comparison);
-}
-
-bool StatAllFilesInDir(const std::string& dir,
-                       std::map<std::string, TimeStamp>* stamps,
-                       std::string* err) {
-  // FindExInfoBasic is 30% faster than FindExInfoStandard.
-  static bool can_use_basic_info = IsWindows7OrLater();
-  // This is not in earlier SDKs.
-  const FINDEX_INFO_LEVELS kFindExInfoBasic =
-      static_cast<FINDEX_INFO_LEVELS>(1);
-  FINDEX_INFO_LEVELS level =
-      can_use_basic_info ? kFindExInfoBasic : FindExInfoStandard;
-  WIN32_FIND_DATAA ffd;
-  HANDLE find_handle = FindFirstFileExA((dir + "\\*").c_str(), level, &ffd,
-                                        FindExSearchNameMatch, nullptr, 0);
-
-  if (find_handle == INVALID_HANDLE_VALUE) {
-    DWORD win_err = GetLastError();
-    if (win_err == ERROR_FILE_NOT_FOUND || win_err == ERROR_PATH_NOT_FOUND)
-      return true;
-    *err = "FindFirstFileExA(" + dir + "): " + GetLastErrorString();
-    return false;
-  }
-  do {
-    std::string lowername = ffd.cFileName;
-    if (lowername == "..") {
-      // Seems to just copy the timestamp for ".." from ".", which is wrong.
-      // This is the case at least on NTFS under Windows 7.
-      continue;
-    }
-    std::transform(lowername.begin(), lowername.end(), lowername.begin(),
-                   ::tolower);
-    stamps->insert(
-        std::make_pair(lowername, TimeStampFromFileTime(ffd.ftLastWriteTime)));
-  } while (FindNextFileA(find_handle, &ffd));
-  FindClose(find_handle);
-  return true;
-}
 #endif  // _WIN32
 
 }  // namespace
@@ -168,30 +120,7 @@ TimeStamp RealDiskInterface::Stat(const std::string& path,
     *err = err_stream.str();
     return -1;
   }
-  if (!use_cache_)
-    return StatSingleFile(path, err);
-
-  std::string dir = DirName(path);
-  std::string base(path.substr(dir.size() ? dir.size() + 1 : 0));
-  if (base == "..") {
-    // StatAllFilesInDir does not report any information for base = "..".
-    base = ".";
-    dir = path;
-  }
-
-  std::transform(dir.begin(), dir.end(), dir.begin(), ::tolower);
-  std::transform(base.begin(), base.end(), base.begin(), ::tolower);
-
-  Cache::iterator ci = cache_.find(dir);
-  if (ci == cache_.end()) {
-    ci = cache_.insert(std::make_pair(dir, DirCache())).first;
-    if (!StatAllFilesInDir(dir.empty() ? "." : dir, &ci->second, err)) {
-      cache_.erase(ci);
-      return -1;
-    }
-  }
-  DirCache::iterator di = ci->second.find(base);
-  return di != ci->second.end() ? di->second : 0;
+  return StatSingleFile(path, err);
 #else
   struct stat st;
   if (stat(path.c_str(), &st) < 0) {
@@ -287,12 +216,4 @@ int RealDiskInterface::RemoveFile(const std::string& path) {
   } else {
     return 0;
   }
-}
-
-void RealDiskInterface::AllowStatCache(bool allow) {
-#ifdef _WIN32
-  use_cache_ = allow;
-  if (!use_cache_)
-    cache_.clear();
-#endif
 }
