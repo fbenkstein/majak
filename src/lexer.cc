@@ -67,7 +67,7 @@ void Lexer::Start(StringPiece filename, StringPiece input) {
   filename_ = filename;
   input_ = input;
   ofs_ = input_.str_;
-  last_token_ = NULL;
+  last_token_ = nullptr;
 }
 
 const char* Lexer::TokenName(Token t) {
@@ -90,7 +90,7 @@ const char* Lexer::TokenName(Token t) {
   case TEOF:     return "eof";
   }
   // clang-format on
-  return NULL;  // not reached
+  return nullptr;  // not reached
 }
 
 const char* Lexer::TokenErrorHint(Token expected) {

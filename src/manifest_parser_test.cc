@@ -410,7 +410,7 @@ TEST_F(ParserTest, ReservedWords) {
 TEST_F(ParserTest, Errors) {
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest(std::string("subn", 4), &err));
     EXPECT_EQ(
@@ -422,7 +422,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("foobar", &err));
     EXPECT_EQ(
@@ -434,7 +434,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("x 3", &err));
     EXPECT_EQ(
@@ -446,7 +446,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("x = 3", &err));
     EXPECT_EQ(
@@ -458,7 +458,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("x = 3\ny 2", &err));
     EXPECT_EQ(
@@ -470,7 +470,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("x = $", &err));
     EXPECT_EQ(
@@ -482,7 +482,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("x = $\n $[\n", &err));
     EXPECT_EQ(
@@ -494,7 +494,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("x = a$\n b$\n $\n", &err));
     EXPECT_EQ("input:4: unexpected EOF\n", err);
@@ -502,7 +502,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("build\n", &err));
     EXPECT_EQ(
@@ -514,7 +514,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("build x: y z\n", &err));
     EXPECT_EQ(
@@ -526,7 +526,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("build x:: y z\n", &err));
     EXPECT_EQ(
@@ -538,7 +538,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cat\n  command = cat ok\n"
@@ -553,7 +553,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("rule cat\n", &err));
     EXPECT_EQ("input:2: expected 'command =' line\n", err);
@@ -561,7 +561,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cat\n"
@@ -578,7 +578,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cat\n"
@@ -592,7 +592,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cat\n"
@@ -608,7 +608,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cat\n"
@@ -624,7 +624,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cat\n"
@@ -640,7 +640,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("rule %foo\n", &err));
     EXPECT_EQ(
@@ -652,7 +652,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cc\n"
@@ -668,7 +668,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cc\n  command = foo\n"
@@ -683,7 +683,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("rule cc\n  command = foo\n  && bar", &err));
     EXPECT_EQ(
@@ -695,7 +695,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule cc\n  command = foo\n"
@@ -710,7 +710,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("default\n", &err));
     EXPECT_EQ(
@@ -722,7 +722,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("default nonexistent\n", &err));
     EXPECT_EQ(
@@ -734,7 +734,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule r\n  command = r\n"
@@ -750,7 +750,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("default $a\n", &err));
     EXPECT_EQ(
@@ -762,7 +762,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("rule r\n"
@@ -776,7 +776,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     // the indented blank line must terminate the rule
     // this also verifies that "unexpected (token)" errors are correct
@@ -791,7 +791,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("pool\n", &err));
     EXPECT_EQ(
@@ -803,7 +803,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(parser.ParseTest("pool foo\n", &err));
     EXPECT_EQ("input:2: expected 'depth =' line\n", err);
@@ -811,7 +811,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("pool foo\n"
@@ -827,7 +827,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("pool foo\n"
@@ -842,7 +842,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     EXPECT_FALSE(
         parser.ParseTest("pool foo\n"
@@ -857,7 +857,7 @@ TEST_F(ParserTest, Errors) {
 
   {
     State local_state;
-    ManifestParser parser(&local_state, NULL);
+    ManifestParser parser(&local_state, nullptr);
     std::string err;
     // Pool names are dereferenced at edge parsing time.
     EXPECT_FALSE(
@@ -880,7 +880,7 @@ TEST_F(ParserTest, MissingInput) {
 
 TEST_F(ParserTest, MultipleOutputs) {
   State local_state;
-  ManifestParser parser(&local_state, NULL);
+  ManifestParser parser(&local_state, nullptr);
   std::string err;
   EXPECT_TRUE(
       parser.ParseTest("rule cc\n  command = foo\n  depfile = bar\n"
@@ -891,7 +891,7 @@ TEST_F(ParserTest, MultipleOutputs) {
 
 TEST_F(ParserTest, MultipleOutputsWithDeps) {
   State local_state;
-  ManifestParser parser(&local_state, NULL);
+  ManifestParser parser(&local_state, nullptr);
   std::string err;
   EXPECT_FALSE(
       parser.ParseTest("rule cc\n  command = foo\n  deps = gcc\n"
@@ -1059,7 +1059,7 @@ TEST_F(ParserTest, ImplicitOutputDupes) {
 }
 
 TEST_F(ParserTest, NoExplicitOutput) {
-  ManifestParser parser(&state, NULL);
+  ManifestParser parser(&state, nullptr);
   std::string err;
   EXPECT_TRUE(
       parser.ParseTest("rule cat\n"
@@ -1120,7 +1120,7 @@ TEST_F(ParserTest, UTF8) {
 
 TEST_F(ParserTest, CRLF) {
   State local_state;
-  ManifestParser parser(&local_state, NULL);
+  ManifestParser parser(&local_state, nullptr);
   std::string err;
 
   EXPECT_TRUE(parser.ParseTest("# comment with crlf\r\n", &err));

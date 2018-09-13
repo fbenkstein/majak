@@ -36,7 +36,7 @@ LinePrinter::LinePrinter() : have_blank_line_(true), console_locked_(false) {
   // MSDN says: "For some systems, [_IOLBF] provides line
   // buffering. However, for Win32, the behavior is the same as _IOFBF
   // - Full Buffering."
-  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stdout, nullptr, _IONBF, 0);
   console_ = GetStdHandle(STD_OUTPUT_HANDLE);
   CONSOLE_SCREEN_BUFFER_INFO csbi;
   smart_terminal_ = GetConsoleScreenBufferInfo(console_, &csbi);

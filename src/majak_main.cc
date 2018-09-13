@@ -242,7 +242,7 @@ Command ChooseCommand(const char* command_name) {
 }
 
 NORETURN void real_main(int argc, char** argv) {
-  setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
+  setvbuf(stdout, nullptr, _IOLBF, BUFSIZ);
 
   const char* working_dir = nullptr;
   optind = 1;

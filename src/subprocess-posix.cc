@@ -100,7 +100,7 @@ bool Subprocess::Start(SubprocessSet* set, const std::string& command) {
   if (posix_spawnattr_setflags(&attr, flags) != 0)
     Fatal("posix_spawnattr_setflags: %s", strerror(errno));
 
-  const char* spawned_args[] = { "/bin/sh", "-c", command.c_str(), NULL };
+  const char* spawned_args[] = { "/bin/sh", "-c", command.c_str(), nullptr };
   if (posix_spawn(&pid_, "/bin/sh", &action, &attr,
                   const_cast<char**>(spawned_args), environ) != 0)
     Fatal("posix_spawn: %s", strerror(errno));
@@ -234,7 +234,7 @@ bool SubprocessSet::DoWork() {
   }
 
   interrupted_ = 0;
-  int ret = ppoll(&fds.front(), nfds, NULL, &old_mask_);
+  int ret = ppoll(&fds.front(), nfds, nullptr, &old_mask_);
   if (ret == -1) {
     if (errno != EINTR) {
       perror("ninja: ppoll");
@@ -318,7 +318,7 @@ bool SubprocessSet::DoWork() {
 
 Subprocess* SubprocessSet::NextFinished() {
   if (finished_.empty())
-    return NULL;
+    return nullptr;
   Subprocess* subproc = finished_.front();
   finished_.pop();
   return subproc;

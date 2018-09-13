@@ -160,7 +160,7 @@ struct Tool {
 int GuessParallelism();
 
 /// Find the function to execute for \a tool_name and return it via \a func.
-/// Returns a Tool, or NULL if Ninja should exit.
+/// Returns a Tool, or nullptr if Ninja should exit.
 const Tool* ChooseTool(const std::string& tool_name);
 
 /// Enable a debugging mode.  Returns false if Ninja should exit instead

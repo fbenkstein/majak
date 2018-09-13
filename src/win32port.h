@@ -15,7 +15,7 @@
 #ifndef NINJA_WIN32PORT_H_
 #define NINJA_WIN32PORT_H_
 
-#include <cstdint>
 #include <cinttypes>
+#include <cstdint>
 
 #endif  // NINJA_WIN32PORT_H_

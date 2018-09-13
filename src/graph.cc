@@ -84,7 +84,7 @@ bool DependencyScan::RecomputeDirty(Node* node, std::vector<Node*>* stack,
   }
 
   // Visit all inputs; we're dirty if any of the inputs are dirty.
-  Node* most_recent_input = NULL;
+  Node* most_recent_input = nullptr;
   for (std::vector<Node*>::iterator i = edge->inputs_.begin();
        i != edge->inputs_.end(); ++i) {
     // Visit this input.
@@ -144,7 +144,7 @@ bool DependencyScan::RecomputeDirty(Node* node, std::vector<Node*>* stack,
 bool DependencyScan::VerifyDAG(Node* node, std::vector<Node*>* stack,
                                std::string* err) {
   Edge* edge = node->in_edge();
-  assert(edge != NULL);
+  assert(edge != nullptr);
 
   // If we have no temporary mark on the edge then we do not yet have a cycle.
   if (edge->mark_ != Edge::VisitInStack)
@@ -391,12 +391,12 @@ std::string Edge::GetUnescapedRspfile() {
 void Edge::Dump(const char* prefix) const {
   printf("%s[ ", prefix);
   for (std::vector<Node*>::const_iterator i = inputs_.begin();
-       i != inputs_.end() && *i != NULL; ++i) {
+       i != inputs_.end() && *i != nullptr; ++i) {
     printf("%s ", (*i)->path().c_str());
   }
   printf("--%s-> ", rule_->name().c_str());
   for (std::vector<Node*>::const_iterator i = outputs_.begin();
-       i != outputs_.end() && *i != NULL; ++i) {
+       i != outputs_.end() && *i != nullptr; ++i) {
     printf("%s ", (*i)->path().c_str());
   }
   if (pool_) {
@@ -431,7 +431,7 @@ std::string Node::PathDecanonicalized(const std::string& path,
   std::string result = path;
 #ifdef _WIN32
   uint64_t mask = 1;
-  for (char* c = &result[0]; (c = strchr(c, '/')) != NULL;) {
+  for (char* c = &result[0]; (c = strchr(c, '/')) != nullptr;) {
     if (slash_bits & mask)
       *c = '\\';
     c++;
@@ -452,7 +452,7 @@ void Node::Dump(const char* prefix) const {
   }
   printf(" out edges:\n");
   for (std::vector<Edge*>::const_iterator e = out_edges().begin();
-       e != out_edges().end() && *e != NULL; ++e) {
+       e != out_edges().end() && *e != nullptr; ++e) {
     (*e)->Dump(" +- ");
   }
 }

@@ -119,7 +119,7 @@ Node* NinjaMain::CollectTarget(const char* cpath, bool source_dwim,
   std::string path = cpath;
   uint64_t slash_bits;
   if (!CanonicalizePath(&path, &slash_bits, err))
-    return NULL;
+    return nullptr;
 
   // Special syntax: "foo.cc^" means "the first output of foo.cc".
   bool first_dependent = false;
@@ -133,7 +133,7 @@ Node* NinjaMain::CollectTarget(const char* cpath, bool source_dwim,
     if (first_dependent) {
       if (node->out_edges().empty()) {
         *err = "'" + path + "' has no out edge";
-        return NULL;
+        return nullptr;
       }
       Edge* edge = node->out_edges()[0];
       if (edge->outputs_.empty()) {
@@ -159,7 +159,7 @@ Node* NinjaMain::CollectTarget(const char* cpath, bool source_dwim,
         *err += ", did you mean '" + suggestion->path() + "'?";
       }
     }
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -177,7 +177,7 @@ bool NinjaMain::CollectTargetsFromArgs(int argc, char* argv[], bool source_dwim,
 
   for (int i = 0; i < argc; ++i) {
     Node* node = CollectTarget(argv[i], source_dwim, err);
-    if (node == NULL)
+    if (node == nullptr)
       return false;
     targets->push_back(node);
   }
@@ -387,7 +387,7 @@ int NinjaMain::ToolTargets(const Options* options, int argc, char* argv[]) {
       return ToolTargetsList(&state_);
     } else {
       const char* suggestion =
-          SpellcheckString(mode.c_str(), "rule", "depth", "all", NULL);
+          SpellcheckString(mode.c_str(), "rule", "depth", "all", nullptr);
       if (suggestion) {
         Error("unknown target tool mode '%s', did you mean '%s'?", mode.c_str(),
               suggestion);
@@ -682,8 +682,8 @@ const Tool* ChooseTool(const std::string& tool_name) {
       Tool::RUN_AFTER_LOAD, &NinjaMain::ToolCompilationDatabase },
     { "recompact", "recompacts ninja-internal data structures",
       Tool::RUN_AFTER_LOAD, &NinjaMain::ToolRecompact },
-    { "urtle", NULL, Tool::RUN_AFTER_FLAGS, &NinjaMain::ToolUrtle },
-    { NULL, NULL, Tool::RUN_AFTER_FLAGS, NULL }
+    { "urtle", nullptr, Tool::RUN_AFTER_FLAGS, &NinjaMain::ToolUrtle },
+    { nullptr, nullptr, Tool::RUN_AFTER_FLAGS, nullptr }
   };
 
   if (tool_name == "list") {
@@ -692,7 +692,7 @@ const Tool* ChooseTool(const std::string& tool_name) {
       if (tool->desc)
         printf("%10s  %s\n", tool->name, tool->desc);
     }
-    return NULL;
+    return nullptr;
   }
 
   for (const Tool* tool = &kTools[0]; tool->name; ++tool) {
@@ -710,7 +710,7 @@ const Tool* ChooseTool(const std::string& tool_name) {
   } else {
     Fatal("unknown tool '%s'", tool_name.c_str());
   }
-  return NULL;  // Not reached.
+  return nullptr;  // Not reached.
 }
 
 bool DebugEnable(const std::string& name) {
@@ -744,7 +744,7 @@ bool DebugEnable(const std::string& name) {
   } else {
     const char* suggestion =
         SpellcheckString(name.c_str(), "stats", "explain", "keepdepfile",
-                         "keeprsp", "nostatcache", NULL);
+                         "keeprsp", "nostatcache", nullptr);
     if (suggestion) {
       Error("unknown debug setting '%s', did you mean '%s'?", name.c_str(),
             suggestion);
@@ -777,7 +777,7 @@ bool WarningEnable(const std::string& name, Options* options) {
   } else {
     const char* suggestion =
         SpellcheckString(name.c_str(), "dupbuild=err", "dupbuild=warn",
-                         "phonycycle=err", "phonycycle=warn", NULL);
+                         "phonycycle=err", "phonycycle=warn", nullptr);
     if (suggestion) {
       Error("unknown warning flag '%s', did you mean '%s'?", name.c_str(),
             suggestion);
@@ -927,7 +927,7 @@ int NinjaMain::RunBuild(int argc, char** argv, bool source_dwim) {
 /// C++ input file. The compiler got itself into a state where it
 /// generated 3 GB of output and caused ninja to crash.
 void TerminateHandler() {
-  CreateWin32MiniDump(NULL);
+  CreateWin32MiniDump(nullptr);
   Fatal("terminate handler called");
 }
 

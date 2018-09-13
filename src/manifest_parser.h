@@ -49,7 +49,7 @@ struct ManifestParser {
 
   /// Load and parse a file.
   bool Load(const std::string& filename, std::string* err,
-            Lexer* parent = NULL);
+            Lexer* parent = nullptr);
 
   /// Parse a text string of input.  Used by tests.
   bool ParseTest(const std::string& input, std::string* err) {

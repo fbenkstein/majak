@@ -103,7 +103,7 @@ bool StatAllFilesInDir(const std::string& dir,
       can_use_basic_info ? kFindExInfoBasic : FindExInfoStandard;
   WIN32_FIND_DATAA ffd;
   HANDLE find_handle = FindFirstFileExA((dir + "\\*").c_str(), level, &ffd,
-                                        FindExSearchNameMatch, NULL, 0);
+                                        FindExSearchNameMatch, nullptr, 0);
 
   if (find_handle == INVALID_HANDLE_VALUE) {
     DWORD win_err = GetLastError();
@@ -229,7 +229,7 @@ TimeStamp RealDiskInterface::Stat(const std::string& path,
 bool RealDiskInterface::WriteFile(const std::string& path,
                                   const std::string& contents) {
   FILE* fp = fopen(path.c_str(), "w");
-  if (fp == NULL) {
+  if (fp == nullptr) {
     Error("WriteFile(%s): Unable to create file. %s", path.c_str(),
           strerror(errno));
     return false;

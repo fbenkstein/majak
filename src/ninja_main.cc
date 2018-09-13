@@ -69,14 +69,15 @@ int ReadFlags(int* argc, char*** argv, Options* options, BuildConfig* config) {
   config->parallelism = GuessParallelism();
 
   enum { OPT_VERSION = 1 };
-  const option kLongOptions[] = { { "help", no_argument, NULL, 'h' },
-                                  { "version", no_argument, NULL, OPT_VERSION },
-                                  { NULL, 0, NULL, 0 } };
+  const option kLongOptions[] = { { "help", no_argument, nullptr, 'h' },
+                                  { "version", no_argument, nullptr,
+                                    OPT_VERSION },
+                                  { nullptr, 0, nullptr, 0 } };
 
   int opt;
   while (!options->tool &&
          (opt = getopt_long(*argc, *argv, "d:f:j:k:l:nt:vw:C:h", kLongOptions,
-                            NULL)) != -1) {
+                            nullptr)) != -1) {
     switch (opt) {
     case 'd':
       if (!DebugEnable(optarg))
@@ -154,7 +155,7 @@ NORETURN void real_main(int argc, char** argv) {
   options.input_file = "build.ninja";
   options.dupe_edges_should_err = true;
 
-  setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
+  setvbuf(stdout, nullptr, _IOLBF, BUFSIZ);
   const char* ninja_command = argv[0];
 
   int exit_code = ReadFlags(&argc, &argv, &options, &config);

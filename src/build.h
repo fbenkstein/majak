@@ -47,7 +47,7 @@ struct Plan {
   bool AddTarget(Node* node, std::string* err);
 
   // Pop a ready edge off the queue of edges to build.
-  // Returns NULL if there's no work to do.
+  // Returns nullptr if there's no work to do.
   Edge* FindWork();
 
   /// Returns true if there's more work to be done.
@@ -117,7 +117,7 @@ struct CommandRunner {
 
   /// The result of waiting for a command.
   struct Result {
-    Result() : edge(NULL) {}
+    Result() : edge(nullptr) {}
     Edge* edge;
     ExitStatus status;
     std::string output;
