@@ -17,6 +17,7 @@ find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 include(FeatureSummary)
+include(GoogleTest)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,8 +30,21 @@ option(
     ]=]
     OFF
 )
+option(
+    NINJA_BUILD_TESTS
+    "Build ninja tests."
+    ON
+)
+add_feature_info(
+    build_tests
+    "${NINJA_BUILD_TESTS}"
+    "build tests for ninja."
+)
 
-enable_testing()
+if (NINJA_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(ext/gtest EXCLUDE_FROM_ALL)
+endif()
 
 set(
     ninja_sources
@@ -255,56 +269,57 @@ target_link_libraries(ninja libninja)
 add_executable(majak src/majak_main.cc)
 target_link_libraries(majak libninja)
 
-set(
-    ninja_test_sources
-
-    src/build_log_test.cc
-    src/build_test.cc
-    src/clean_test.cc
-    src/clparser_test.cc
-    src/depfile_parser_test.cc
-    src/deps_log_test.cc
-    src/disk_interface_test.cc
-    src/edit_distance_test.cc
-    src/graph_test.cc
-    src/lexer_test.cc
-    src/manifest_parser_test.cc
-    src/ninja_test.cc
-    src/state_test.cc
-    src/string_piece_util_test.cc
-    src/subprocess_test.cc
-    src/test.cc
-    src/util_test.cc
-)
-
-if (WIN32)
-    list(APPEND
+if (NINJA_BUILD_TESTS)
+    set(
         ninja_test_sources
 
-        src/includes_normalize_test.cc
-        src/msvc_helper_test.cc
+        src/build_log_test.cc
+        src/build_test.cc
+        src/clean_test.cc
+        src/clparser_test.cc
+        src/depfile_parser_test.cc
+        src/deps_log_test.cc
+        src/disk_interface_test.cc
+        src/edit_distance_test.cc
+        src/graph_test.cc
+        src/lexer_test.cc
+        src/manifest_parser_test.cc
+        src/state_test.cc
+        src/string_piece_util_test.cc
+        src/subprocess_test.cc
+        src/test.cc
+        src/util_test.cc
     )
+
+    if (WIN32)
+        list(APPEND
+            ninja_test_sources
+
+            src/includes_normalize_test.cc
+            src/msvc_helper_test.cc
+        )
+    endif()
+
+    add_executable(ninja_test ${ninja_test_sources})
+    target_link_libraries(ninja_test libninja gtest gtest_main)
+    gtest_discover_tests(ninja_test)
+
+    set(
+        ninja_perftests
+
+        build_log_perftest
+        canon_perftest
+        depfile_parser_perftest
+        hash_collision_bench
+        manifest_parser_perftest
+        clparser_perftest
+    )
+
+    foreach(perftest_name IN LISTS ninja_perftests)
+        add_executable(${perftest_name} src/${perftest_name}.cc)
+        target_link_libraries(${perftest_name} libninja)
+    endforeach()
 endif()
-
-add_executable(ninja_test ${ninja_test_sources})
-target_link_libraries(ninja_test libninja)
-add_test(NAME ninja_test COMMAND ninja_test)
-
-set(
-    ninja_perftests
-
-    build_log_perftest
-    canon_perftest
-    depfile_parser_perftest
-    hash_collision_bench
-    manifest_parser_perftest
-    clparser_perftest
-)
-
-foreach(perftest_name IN LISTS ninja_perftests)
-    add_executable(${perftest_name} src/${perftest_name}.cc)
-    target_link_libraries(${perftest_name} libninja)
-endforeach()
 
 if (TARGET Doxygen::dot AND CMAKE_GENERATOR STREQUAL "Ninja")
     add_custom_command(
