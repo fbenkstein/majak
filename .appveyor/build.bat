@@ -30,6 +30,7 @@ cmake --build . -- -v || goto FAIL
 ctest --output-on-failure || goto FAIL
 cd .. || goto FAIL
 
+goto SUCCESS
 :FAIL
 set EXITCODE=1
 :SUCCESS
