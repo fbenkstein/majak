@@ -112,7 +112,7 @@ TEST(CanonicalizePath, PathSamples) {
 
 #ifdef _WIN32
 TEST(CanonicalizePath, PathSamplesWindows) {
-  string path;
+  std::string path;
   std::string err;
 
   EXPECT_FALSE(CanonicalizePath(&path, &err));
@@ -177,7 +177,7 @@ TEST(CanonicalizePath, PathSamplesWindows) {
 }
 
 TEST(CanonicalizePath, SlashTracking) {
-  string path;
+  std::string path;
   std::string err;
   uint64_t slash_bits;
 
@@ -275,7 +275,7 @@ TEST(CanonicalizePath, CanonicalizeNotExceedingLen) {
 }
 
 TEST(CanonicalizePath, TooManyComponents) {
-  string path;
+  std::string path;
   std::string err;
   uint64_t slash_bits;
 
