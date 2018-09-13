@@ -26,5 +26,5 @@ cmake \
     -DCMAKE_C_COMPILER=${CC} \
     -DCMAKE_MAKE_PROGRAM=${NINJA} ..
 cmake --build . -- -v
-ctest
+ctest --output-on-failure
 popd

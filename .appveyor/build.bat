@@ -26,7 +26,7 @@ cmake ^
     -DCMAKE_MAKE_PROGRAM=%NINJA% .. ^
     || goto FAIL
 cmake --build . -- -v || goto FAIL
-ctest || goto FAIL
+ctest --output-on-failure || goto FAIL
 cd .. || goto FAIL
 
 :FAIL
