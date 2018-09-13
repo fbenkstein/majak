@@ -11,6 +11,7 @@ cmake ^
     -G "NMake Makefiles" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_VERBOSE_MAKEFILE=ON ^
+    -DNINJA_BUILD_TESTS=OFF ^
     .. ^
     || goto FAIL
 cmake --build . -- ninja || goto FAIL

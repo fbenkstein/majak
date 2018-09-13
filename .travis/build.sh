@@ -11,6 +11,7 @@ cmake \
     -DCMAKE_CXX_COMPILER=${CXX} \
     -DCMAKE_C_COMPILER=${CC} \
     -DCMAKE_VERBOSE_MAKEFILE=ON \
+    -DNINJA_BUILD_TESTS=OFF \
     ..
 cmake --build . -- ninja
 export NINJA=$PWD/ninja
