@@ -9,6 +9,8 @@ clone_script:
 
     cd %APPVEYOR_BUILD_FOLDER%
 
+    if defined APPVEYOR_PULL_REQUEST_NUMBER git fetch -q origin +refs/pull/%APPVEYOR_PULL_REQUEST_NUMBER%/merge
+
     git checkout -qf %APPVEYOR_REPO_COMMIT%
 
     git submodule update --init --recursive
