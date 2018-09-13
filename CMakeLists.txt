@@ -111,6 +111,8 @@ else()
 
         src/subprocess-posix.cc
     )
+
+    set(FILESYSTEM_LIBRARY stdc++fs)
 endif()
 
 check_cxx_source_compiles(

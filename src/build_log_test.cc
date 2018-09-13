@@ -26,16 +26,30 @@
 #include <unistd.h>
 #endif
 
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#error no filesystem library available
+#endif
+
 namespace {
 
 const char kTestFilename[] = "BuildLogTest-tempfile";
 
 struct BuildLogTest : public StateTestWithBuiltinRules, public BuildLogUser {
+  void RemoveTestFile() {
+    std::error_code ignore;
+    fs::remove(kTestFilename, ignore);
+  }
   virtual void SetUp() {
     // In case a crashing test left a stale file behind.
-    unlink(kTestFilename);
+    RemoveTestFile();
   }
-  virtual void TearDown() { unlink(kTestFilename); }
+  virtual void TearDown() { RemoveTestFile(); }
   virtual bool IsPathDead(StringPiece s) const { return false; }
 };
 
