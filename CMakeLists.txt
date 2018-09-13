@@ -43,6 +43,7 @@ add_feature_info(
 
 if (NINJA_BUILD_TESTS)
     enable_testing()
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     add_subdirectory(ext/gtest EXCLUDE_FROM_ALL)
 endif()
 
