@@ -151,7 +151,7 @@ std::string IncludesNormalize::Relativize(
     rel_list.push_back(path_list[j]);
   if (rel_list.size() == 0)
     return ".";
-  return Joinstd::string_view(rel_list, '/');
+  return JoinStringView(rel_list, '/');
 }
 
 bool IncludesNormalize::Normalize(const std::string& input, std::string* result,
