@@ -15,18 +15,34 @@
 #include <benchmark/benchmark.h>
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
+#include <string>
 
 #include "filesystem.h"
 #include "metrics.h"
 #include "util.h"
 
+#if __has_include(<boost/filesystem.hpp>) && __cpp_exceptions
+#include <boost/filesystem.hpp>
+#define HAS_BOOST_FS 1
+namespace boost_fs = boost::filesystem;
+#endif
+
 namespace fs = ninja::fs;
+using namespace std::string_view_literals;
 
 namespace {
 
-constexpr char kPath[] =
-    "../../third_party/WebKit/Source/WebCore/"
-    "platform/leveldb/LevelDBWriteBatch.cpp";
+constexpr std::string_view kPaths[] = {
+  "../../third_party/WebKit/Source/WebCore/platform/leveldb/LevelDBWriteBatch.cpp"sv,
+  "/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu"sv,
+};
+
+double now() {
+  return std::chrono::duration_cast<std::chrono::duration<double>>(
+             std::chrono::high_resolution_clock::now().time_since_epoch())
+      .count();
+}
 }  // namespace
 
 /// Keep comparable with legacy ninja.
@@ -35,70 +51,126 @@ static void BM_CanonicalizePathLegacy(benchmark::State& state) {
 
   constexpr int kNumRepetitions = 2000000;
   uint64_t slash_bits;
-  char buf[200];
-  size_t len = strlen(kPath);
-  strcpy(buf, kPath);
+  std::string s(kPaths[state.range(0)]);
+  char* buf = s.data();
+  size_t len = s.size();
 
   for (auto _ : state) {
+    auto start = now();
     for (int i = 0; i < kNumRepetitions; ++i) {
       CanonicalizePath(buf, &len, &slash_bits, &err);
     }
+    state.SetIterationTime(now() - start);
   }
 }
-BENCHMARK(BM_CanonicalizePathLegacy)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_CanonicalizePathLegacy)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Arg(0)
+    ->Arg(1);
 
 static void BM_CanonicalizePath(benchmark::State& state) {
   std::string err;
 
   uint64_t slash_bits;
-  char buf[200];
-  size_t len = strlen(kPath);
-  strcpy(buf, kPath);
+  std::string s(kPaths[state.range(0)]);
+  char* buf = s.data();
+  size_t len = s.size();
 
   for (auto _ : state) {
+    auto start = now();
     CanonicalizePath(buf, &len, &slash_bits, &err);
+    state.SetIterationTime(now() - start);
   }
 }
-BENCHMARK(BM_CanonicalizePath);
+BENCHMARK(BM_CanonicalizePath)->UseManualTime()->Arg(0)->Arg(1);
 
 static void BM_EmptyPath(benchmark::State& state) {
   for (auto _ : state) {
+    auto start = now();
     fs::path p;
     benchmark::DoNotOptimize(p);
+    state.SetIterationTime(now() - start);
   }
 }
-BENCHMARK(BM_EmptyPath);
-
-static void BM_EmptyPathPauseResume(benchmark::State& state) {
-  for (auto _ : state) {
-    state.PauseTiming();
-    state.ResumeTiming();
-    fs::path p;
-    benchmark::DoNotOptimize(p);
-  }
-}
-BENCHMARK(BM_EmptyPathPauseResume);
+BENCHMARK(BM_EmptyPath)->UseManualTime();
 
 static void BM_StringToPath(benchmark::State& state) {
-    for (auto _ : state) {
-        state.PauseTiming();
-        std::string s = kPath;
-        state.ResumeTiming();
-        fs::path p(std::move(s));
-        benchmark::DoNotOptimize(p);
-    }
+  for (auto _ : state) {
+    std::string s(kPaths[0]);
+    auto start = now();
+    fs::path p(std::move(s));
+    benchmark::DoNotOptimize(p);
+    state.SetIterationTime(now() - start);
+  }
 }
-BENCHMARK(BM_StringToPath);
+BENCHMARK(BM_StringToPath)->UseManualTime();
 
 static void BM_PathToPath(benchmark::State& state) {
-    for (auto _ : state) {
-        state.PauseTiming();
-        fs::path s = kPath;
-        state.ResumeTiming();
-        fs::path p(std::move(s));
-        benchmark::DoNotOptimize(p);
-    }
+  for (auto _ : state) {
+    fs::path s(kPaths[0]);
+    auto start = now();
+    fs::path p(std::move(s));
+    benchmark::DoNotOptimize(p);
+    state.SetIterationTime(now() - start);
+  }
 }
-BENCHMARK(BM_PathToPath);
+BENCHMARK(BM_PathToPath)->UseManualTime();
+
+static void BM_PathAssignToPath(benchmark::State& state) {
+  for (auto _ : state) {
+    fs::path s(kPaths[0]);
+    auto start = now();
+    fs::path p;
+    benchmark::DoNotOptimize(p);
+    p = std::move(s);
+    benchmark::DoNotOptimize(p);
+    state.SetIterationTime(now() - start);
+  }
+}
+BENCHMARK(BM_PathAssignToPath)->UseManualTime();
+
+#if HAS_BOOST_FS
+static void BM_BoostEmptyPath(benchmark::State& state) {
+  for (auto _ : state) {
+    auto start = now();
+    boost_fs::path p;
+    benchmark::DoNotOptimize(p);
+    state.SetIterationTime(now() - start);
+  }
+}
+BENCHMARK(BM_BoostEmptyPath)->UseManualTime();
+
+static void BM_BoostStringToPath(benchmark::State& state) {
+  for (auto _ : state) {
+    std::string s(kPaths[0]);
+    auto start = now();
+    boost_fs::path p(std::move(s));
+    benchmark::DoNotOptimize(p);
+    state.SetIterationTime(now() - start);
+  }
+}
+BENCHMARK(BM_BoostStringToPath)->UseManualTime();
+
+static void BM_BoostPathToPath(benchmark::State& state) {
+  for (auto _ : state) {
+    boost_fs::path s{ std::string{ kPaths[0] } };
+    auto start = now();
+    boost_fs::path p(std::move(s));
+    benchmark::DoNotOptimize(p);
+    state.SetIterationTime(now() - start);
+  }
+}
+BENCHMARK(BM_BoostPathToPath)->UseManualTime();
+#endif  // HAS_BOOST_FS
+
+static void BM_Baseline(benchmark::State& state) {
+  for (auto _ : state) {
+    auto start = now();
+    benchmark::DoNotOptimize(start);
+    state.SetIterationTime(now() - start);
+  }
+}
+BENCHMARK(BM_Baseline)->UseManualTime();
 
 BENCHMARK_MAIN();

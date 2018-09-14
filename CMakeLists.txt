@@ -9,6 +9,7 @@ find_package(PythonInterp 3)
 if (NOT PYTHONINTERP_FOUND)
     find_package(PythonInterp 2.7)
 endif()
+find_package(Boost COMPONENTS filesystem)
 find_package(Doxygen OPTIONAL_COMPONENTS dot)
 find_program(NINJA_ASCIIDOC_EXECUTABLE asciidoc)
 find_program(NINJA_XSLTPROC_EXECUTABLE xsltproc)
@@ -35,6 +36,16 @@ option(
     NINJA_BUILD_TESTS
     "Build ninja tests and benchmarks."
     ON
+)
+option(
+    NINJA_ENABLE_EXCEPTIONS
+    "Build ninja with exceptions enabled."
+    OFF
+)
+option(
+    NINJA_ENABLE_RTTI
+    "Build ninja with RTTI enabled"
+    OFF
 )
 
 add_feature_info(
@@ -203,11 +214,16 @@ if (MSVC)
         /wd4355
         # Disable warnings about ignored typedef in DbgHelp.h
         /wd4091
-        /GR-  # Disable RTTI.
         # Disable size_t -> int truncation warning.
         # We never have strings or arrays larger than 2**31.
         /wd4267
     )
+
+    if (NINJA_ENABLE_RTTI)
+        list(APPEND ninja_compile_options /GR)
+    else()
+        list(APPEND ninja_compile_options /GR-)
+    endif()
 else()
     set(
         ninja_compile_options
@@ -217,14 +233,17 @@ else()
         -Wno-missing-field-initializers
         -Wno-unused-parameter
         -Wno-implicit-fallthrough
-        -fno-exceptions
         -iquote "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
 
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         list(APPEND ninja_compile_definitions _GLIBCXX_DEBUG _GLIBCXX_DEBUG_PEDANTIC)
-    else()
+    elseif(NOT NINJA_ENABLE_RTTI)
         list(APPEND ninja_compile_options -fno-rtti)
+    endif()
+
+    if (NOT NINJA_ENABLE_EXCEPTIONS)
+        list(APPEND ninja_compile_options -fno-exceptions)
     endif()
 
     if (NOT NINJA_FORCE_PSELECT)
@@ -382,6 +401,15 @@ if (NINJA_BUILD_TESTS)
         add_executable(${perftest_name} src/${perftest_name}.cc)
         target_link_libraries(${perftest_name} libninja benchmark)
     endforeach()
+
+    if (Boost_FILESYSTEM_FOUND)
+        target_include_directories(canon_perftest PRIVATE ${Boost_INCLUDE_DIRS})
+        target_link_libraries(
+            canon_perftest
+            ${Boost_FILESYSTEM_LIBRARY}
+            ${Boost_SYSTEM_LIBRARY}
+        )
+    endif()
 endif()
 
 if (TARGET Doxygen::dot AND CMAKE_GENERATOR STREQUAL "Ninja")
