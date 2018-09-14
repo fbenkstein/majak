@@ -23,15 +23,15 @@ std::vector<std::string_view> SplitStringView(std::string_view input,
   std::vector<std::string_view> elems;
   elems.reserve(std::count(input.begin(), input.end(), sep) + 1);
 
-  std::string_view::const_iterator pos = input.begin();
+  size_t pos = 0;
 
   for (;;) {
-    const char* next_pos = std::find(pos, input.end(), sep);
-    if (next_pos == input.end()) {
-      elems.push_back(std::string_view(pos, input.end() - pos));
+    size_t next_pos = input.find(sep, pos);
+    if (next_pos == std::string_view::npos) {
+      elems.push_back(input.substr(pos));
       break;
     }
-    elems.push_back(std::string_view(pos, next_pos - pos));
+    elems.push_back(input.substr(pos, next_pos - pos));
     pos = next_pos + 1;
   }
 
