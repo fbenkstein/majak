@@ -14,77 +14,26 @@
 
 #include "metrics.h"
 
-#include <errno.h>
 #include <stdio.h>
-#include <string.h>
-
-#ifndef _WIN32
-#include <sys/time.h>
-#else
-#include <windows.h>
-#endif
 
 #include <algorithm>
-
-#include "util.h"
+#include <vector>
 
 Metrics* g_metrics = nullptr;
-
-namespace {
-
-#ifndef _WIN32
-/// Compute a platform-specific high-res timer value that fits into an int64.
-int64_t HighResTimer() {
-  timeval tv;
-  if (gettimeofday(&tv, nullptr) < 0)
-    Fatal("gettimeofday: %s", strerror(errno));
-  return (int64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec;
-}
-
-/// Convert a delta of HighResTimer() values to microseconds.
-int64_t TimerToMicros(int64_t dt) {
-  // No conversion necessary.
-  return dt;
-}
-#else
-int64_t LargeIntegerToInt64(const LARGE_INTEGER& i) {
-  return ((int64_t)i.HighPart) << 32 | i.LowPart;
-}
-
-int64_t HighResTimer() {
-  LARGE_INTEGER counter;
-  if (!QueryPerformanceCounter(&counter))
-    Fatal("QueryPerformanceCounter: %s", GetLastErrorString().c_str());
-  return LargeIntegerToInt64(counter);
-}
-
-int64_t TimerToMicros(int64_t dt) {
-  static int64_t ticks_per_sec = 0;
-  if (!ticks_per_sec) {
-    LARGE_INTEGER freq;
-    if (!QueryPerformanceFrequency(&freq))
-      Fatal("QueryPerformanceFrequency: %s", GetLastErrorString().c_str());
-    ticks_per_sec = LargeIntegerToInt64(freq);
-  }
-
-  // dt is in ticks.  We want microseconds.
-  return (dt * 1000000) / ticks_per_sec;
-}
-#endif
-
-}  // anonymous namespace
 
 ScopedMetric::ScopedMetric(Metric* metric) {
   metric_ = metric;
   if (!metric_)
     return;
-  start_ = HighResTimer();
+  start_ = std::chrono::high_resolution_clock::now();
 }
 ScopedMetric::~ScopedMetric() {
   if (!metric_)
     return;
   metric_->count++;
-  int64_t dt = TimerToMicros(HighResTimer() - start_);
+  int64_t dt = std::chrono::duration_cast<std::chrono::microseconds>(
+                   std::chrono::high_resolution_clock::now() - start_)
+                   .count();
   metric_->sum += dt;
 }
 
@@ -116,10 +65,8 @@ void Metrics::Report() {
   }
 }
 
-uint64_t Stopwatch::Now() const {
-  return TimerToMicros(HighResTimer());
-}
-
 int64_t GetTimeMillis() {
-  return TimerToMicros(HighResTimer()) / 1000;
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::high_resolution_clock::now().time_since_epoch())
+      .count();
 }

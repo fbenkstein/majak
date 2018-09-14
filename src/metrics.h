@@ -15,6 +15,7 @@
 #ifndef NINJA_METRICS_H_
 #define NINJA_METRICS_H_
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -42,7 +43,7 @@ struct ScopedMetric {
   Metric* metric_;
   /// Timestamp when the measurement started.
   /// Value is platform-dependent.
-  int64_t start_;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start_;
 };
 
 /// The singleton that stores metrics and prints the report.
@@ -64,18 +65,17 @@ int64_t GetTimeMillis();
 /// in seconds since Restart() was called.
 struct Stopwatch {
  public:
-  Stopwatch() : started_(0) {}
-
   /// Seconds since Restart() call.
   double Elapsed() const {
-    return 1e-6 * static_cast<double>(Now() - started_);
+    return 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(
+                      std::chrono::high_resolution_clock::now() - started_)
+                      .count();
   }
 
-  void Restart() { started_ = Now(); }
+  void Restart() { started_ = std::chrono::high_resolution_clock::now(); }
 
  private:
-  uint64_t started_;
-  uint64_t Now() const;
+  std::chrono::time_point<std::chrono::high_resolution_clock> started_;
 };
 
 /// The primary interface to metrics.  Use METRIC_RECORD("foobar") at the top
