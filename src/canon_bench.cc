@@ -27,16 +27,18 @@ static void BM_CanonicalizePath(benchmark::State& state)
 {
     std::string err;
 
+    const int kNumRepetitions = 2000000;
     uint64_t slash_bits;
     char buf[200];
     size_t len = strlen(kPath);
     strcpy(buf, kPath);
 
     for (auto _ : state) {
-        CanonicalizePath(buf, &len, &slash_bits, &err);
+        for (int i = 0; i < kNumRepetitions; ++i) {
+            CanonicalizePath(buf, &len, &slash_bits, &err);
+        }
     }
 }
-
 BENCHMARK(BM_CanonicalizePath);
 
 BENCHMARK_MAIN();
