@@ -27,8 +27,8 @@ namespace {
 std::string GetCurDir() {
   char buf[_MAX_PATH];
   _getcwd(buf, sizeof(buf));
-  std::vector<std::string_view> parts = Splitstd::string_view(buf, '\\');
-  return parts[parts.size() - 1].AsString();
+  std::vector<std::string_view> parts = SplitStringView(buf, '\\');
+  return std::string(parts[parts.size() - 1]);
 }
 
 std::string NormalizeAndCheckNoError(const std::string& input) {
