@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <benchmark/benchmark.h>
 
 #include "metrics.h"
 #include "util.h"
@@ -22,35 +23,22 @@ const char kPath[] =
     "../../third_party/WebKit/Source/WebCore/"
     "platform/leveldb/LevelDBWriteBatch.cpp";
 
-int main() {
-  std::vector<int> times;
-  std::string err;
+static void BM_CanonicalizePath(benchmark::State& state)
+{
+    std::string err;
 
-  char buf[200];
-  size_t len = strlen(kPath);
-  strcpy(buf, kPath);
-
-  for (int j = 0; j < 5; ++j) {
     const int kNumRepetitions = 2000000;
-    int64_t start = GetTimeMillis();
     uint64_t slash_bits;
-    for (int i = 0; i < kNumRepetitions; ++i) {
-      CanonicalizePath(buf, &len, &slash_bits, &err);
+    char buf[200];
+    size_t len = strlen(kPath);
+    strcpy(buf, kPath);
+
+    for (auto _ : state) {
+        for (int i = 0; i < kNumRepetitions; ++i) {
+            CanonicalizePath(buf, &len, &slash_bits, &err);
+        }
     }
-    int delta = (int)(GetTimeMillis() - start);
-    times.push_back(delta);
-  }
-
-  int min = times[0];
-  int max = times[0];
-  float total = 0;
-  for (size_t i = 0; i < times.size(); ++i) {
-    total += times[i];
-    if (times[i] < min)
-      min = times[i];
-    else if (times[i] > max)
-      max = times[i];
-  }
-
-  printf("min %dms  max %dms  avg %.1fms\n", min, max, total / times.size());
 }
+BENCHMARK(BM_CanonicalizePath);
+
+BENCHMARK_MAIN();
