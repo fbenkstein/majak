@@ -241,7 +241,7 @@ Command ChooseCommand(const char* command_name) {
   return nullptr;
 }
 
-NORETURN void real_main(int argc, char** argv) {
+[[noreturn]] void real_main(int argc, char** argv) {
   setvbuf(stdout, nullptr, _IOLBF, BUFSIZ);
 
   const char* working_dir = nullptr;

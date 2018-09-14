@@ -24,14 +24,8 @@
 #include <string>
 #include <vector>
 
-#ifdef _MSC_VER
-#define NORETURN __declspec(noreturn)
-#else
-#define NORETURN __attribute__((noreturn))
-#endif
-
 /// Log a fatal message and exit.
-NORETURN void Fatal(const char* msg, ...);
+[[noreturn]] void Fatal(const char* msg, ...);
 
 /// Log a warning message.
 void Warning(const char* msg, ...);
@@ -107,7 +101,7 @@ bool Truncate(const std::string& path, size_t size, std::string* err);
 std::string GetLastErrorString();
 
 /// Calls Fatal() with a function name and GetLastErrorString.
-NORETURN void Win32Fatal(const char* function);
+[[noreturn]] void Win32Fatal(const char* function);
 #endif
 
 /// Returns the current working directory. An empty string is returned on error.
