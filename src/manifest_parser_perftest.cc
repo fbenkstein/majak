@@ -43,7 +43,8 @@ bool WriteFakeManifests(const std::string& dir, std::string* err) {
   if (mtime != 0)  // 0 means that the file doesn't exist yet.
     return mtime != -1;
 
-  std::string command = "python misc/write_fake_manifests.py " + dir;
+  std::string command =
+      "python " CMAKE_CURRENT_SOURCE_DIR "/misc/write_fake_manifests.py " + dir;
   printf("Creating manifest data...");
   fflush(stdout);
   int exit_code = system(command.c_str());

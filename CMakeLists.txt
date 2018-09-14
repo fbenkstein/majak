@@ -396,6 +396,11 @@ if (NINJA_BUILD_TESTS)
         add_executable(${perftest_name} src/${perftest_name}.cc)
         target_link_libraries(${perftest_name} libninja)
     endforeach()
+    set_property(
+        SOURCE src/manifest_parser_perftest.cc
+        PROPERTY
+        COMPILE_DEFINITIONS "CMAKE_CURRENT_SOURCE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\""
+    )
 
     foreach(perftest_name IN LISTS ninja_bench_perftests)
         add_executable(${perftest_name} src/${perftest_name}.cc)
