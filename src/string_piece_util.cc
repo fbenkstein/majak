@@ -18,26 +18,28 @@
 #include <string>
 #include <vector>
 
-std::vector<StringPiece> SplitStringPiece(StringPiece input, char sep) {
-  std::vector<StringPiece> elems;
+std::vector<std::string_view> SplitStringView(std::string_view input,
+                                              char sep) {
+  std::vector<std::string_view> elems;
   elems.reserve(std::count(input.begin(), input.end(), sep) + 1);
 
-  StringPiece::const_iterator pos = input.begin();
+  std::string_view::const_iterator pos = input.begin();
 
   for (;;) {
     const char* next_pos = std::find(pos, input.end(), sep);
     if (next_pos == input.end()) {
-      elems.push_back(StringPiece(pos, input.end() - pos));
+      elems.push_back(std::string_view(pos, input.end() - pos));
       break;
     }
-    elems.push_back(StringPiece(pos, next_pos - pos));
+    elems.push_back(std::string_view(pos, next_pos - pos));
     pos = next_pos + 1;
   }
 
   return elems;
 }
 
-std::string JoinStringPiece(const std::vector<StringPiece>& list, char sep) {
+std::string JoinStringView(const std::vector<std::string_view>& list,
+                           char sep) {
   if (list.size() == 0) {
     return "";
   }
@@ -47,7 +49,7 @@ std::string JoinStringPiece(const std::vector<StringPiece>& list, char sep) {
   {
     size_t cap = list.size() - 1;
     for (size_t i = 0; i < list.size(); ++i) {
-      cap += list[i].len_;
+      cap += list[i].size();
     }
     ret.reserve(cap);
   }
@@ -56,19 +58,19 @@ std::string JoinStringPiece(const std::vector<StringPiece>& list, char sep) {
     if (i != 0) {
       ret += sep;
     }
-    ret.append(list[i].str_, list[i].len_);
+    ret.append(list[i]);
   }
 
   return ret;
 }
 
-bool EqualsCaseInsensitiveASCII(StringPiece a, StringPiece b) {
-  if (a.len_ != b.len_) {
+bool EqualsCaseInsensitiveASCII(std::string_view a, std::string_view b) {
+  if (a.size() != b.size()) {
     return false;
   }
 
-  for (size_t i = 0; i < a.len_; ++i) {
-    if (ToLowerASCII(a.str_[i]) != ToLowerASCII(b.str_[i])) {
+  for (size_t i = 0; i < a.size(); ++i) {
+    if (ToLowerASCII(a[i]) != ToLowerASCII(b[i])) {
       return false;
     }
   }

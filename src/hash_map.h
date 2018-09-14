@@ -17,10 +17,11 @@
 
 #include <string.h>
 #include <algorithm>
-#include "string_piece.h"
+#include <string_view>
+#include <unordered_map>
 
 // MurmurHash2, by Austin Appleby
-static inline unsigned int MurmurHash2(const void* key, size_t len) {
+inline unsigned int MurmurHash2(const void* key, size_t len) {
   static const unsigned int seed = 0xDECAFBAD;
   const unsigned int m = 0x5bd1e995;
   const int r = 24;
@@ -52,27 +53,19 @@ static inline unsigned int MurmurHash2(const void* key, size_t len) {
   return h;
 }
 
-#include <unordered_map>
-
-namespace std {
-template <>
-struct hash<StringPiece> {
-  typedef StringPiece argument_type;
-  typedef size_t result_type;
-
-  size_t operator()(StringPiece key) const {
-    return MurmurHash2(key.str_, key.len_);
+struct MurmurHash2Hash {
+  unsigned int operator()(std::string_view data) const {
+    return MurmurHash2(data.data(), data.size());
   }
 };
-}  // namespace std
 
-/// A template for hash_maps keyed by a StringPiece whose string is
+/// A template for hash_maps keyed by a std::string_view whose string is
 /// owned externally (typically by the values).  Use like:
 /// ExternalStringHash<Foo*>::Type foos; to make foos into a hash
-/// mapping StringPiece => Foo*.
+/// mapping std::string_view => Foo*.
 template <typename V>
 struct ExternalStringHashMap {
-  typedef std::unordered_map<StringPiece, V> Type;
+  typedef std::unordered_map<std::string_view, V, MurmurHash2Hash> Type;
 };
 
 #endif  // NINJA_MAP_H_

@@ -33,7 +33,7 @@ TEST_F(DepfileParserTest, Basic) {
   EXPECT_TRUE(Parse(
       "build/ninja.o: ninja.cc ninja.h eval_env.h manifest_parser.h\n", &err));
   ASSERT_EQ("", err);
-  EXPECT_EQ("build/ninja.o", parser_.out_.AsString());
+  EXPECT_EQ("build/ninja.o", parser_.out_);
   EXPECT_EQ(4u, parser_.ins_.size());
 }
 
@@ -53,7 +53,7 @@ TEST_F(DepfileParserTest, Continuation) {
             "  bar.h baz.h\n",
             &err));
   ASSERT_EQ("", err);
-  EXPECT_EQ("foo.o", parser_.out_.AsString());
+  EXPECT_EQ("foo.o", parser_.out_);
   EXPECT_EQ(2u, parser_.ins_.size());
 }
 
@@ -64,7 +64,7 @@ TEST_F(DepfileParserTest, CarriageReturnContinuation) {
             "  bar.h baz.h\r\n",
             &err));
   ASSERT_EQ("", err);
-  EXPECT_EQ("foo.o", parser_.out_.AsString());
+  EXPECT_EQ("foo.o", parser_.out_);
   EXPECT_EQ(2u, parser_.ins_.size());
 }
 
@@ -78,8 +78,7 @@ TEST_F(DepfileParserTest, BackSlashes) {
             "  Project\\Thing\\Bar.tlb \\\n",
             &err));
   ASSERT_EQ("", err);
-  EXPECT_EQ("Project\\Dir\\Build\\Release8\\Foo\\Foo.res",
-            parser_.out_.AsString());
+  EXPECT_EQ("Project\\Dir\\Build\\Release8\\Foo\\Foo.res", parser_.out_);
   EXPECT_EQ(4u, parser_.ins_.size());
 }
 
@@ -87,11 +86,11 @@ TEST_F(DepfileParserTest, Spaces) {
   std::string err;
   EXPECT_TRUE(Parse("a\\ bc\\ def:   a\\ b c d", &err));
   ASSERT_EQ("", err);
-  EXPECT_EQ("a bc def", parser_.out_.AsString());
+  EXPECT_EQ("a bc def", parser_.out_);
   ASSERT_EQ(3u, parser_.ins_.size());
-  EXPECT_EQ("a b", parser_.ins_[0].AsString());
-  EXPECT_EQ("c", parser_.ins_[1].AsString());
-  EXPECT_EQ("d", parser_.ins_[2].AsString());
+  EXPECT_EQ("a b", parser_.ins_[0]);
+  EXPECT_EQ("c", parser_.ins_[1]);
+  EXPECT_EQ("d", parser_.ins_[2]);
 }
 
 TEST_F(DepfileParserTest, Escapes) {
@@ -100,7 +99,7 @@ TEST_F(DepfileParserTest, Escapes) {
   std::string err;
   EXPECT_TRUE(Parse("\\!\\@\\#$$\\%\\^\\&\\\\:", &err));
   ASSERT_EQ("", err);
-  EXPECT_EQ("\\!\\@#$\\%\\^\\&\\", parser_.out_.AsString());
+  EXPECT_EQ("\\!\\@#$\\%\\^\\&\\", parser_.out_);
   ASSERT_EQ(0u, parser_.ins_.size());
 }
 
@@ -115,25 +114,24 @@ TEST_F(DepfileParserTest, SpecialChars) {
             " Fu\303\244ball",
             &err));
   ASSERT_EQ("", err);
-  EXPECT_EQ("C:/Program Files (x86)/Microsoft crtdefs.h",
-            parser_.out_.AsString());
+  EXPECT_EQ("C:/Program Files (x86)/Microsoft crtdefs.h", parser_.out_);
   ASSERT_EQ(4u, parser_.ins_.size());
-  EXPECT_EQ("en@quot.header~", parser_.ins_[0].AsString());
-  EXPECT_EQ("t+t-x!=1", parser_.ins_[1].AsString());
+  EXPECT_EQ("en@quot.header~", parser_.ins_[0]);
+  EXPECT_EQ("t+t-x!=1", parser_.ins_[1]);
   EXPECT_EQ("openldap/slapd.d/cn=config/cn=schema/cn={0}core.ldif",
-            parser_.ins_[2].AsString());
-  EXPECT_EQ("Fu\303\244ball", parser_.ins_[3].AsString());
+            parser_.ins_[2]);
+  EXPECT_EQ("Fu\303\244ball", parser_.ins_[3]);
 }
 
 TEST_F(DepfileParserTest, UnifyMultipleOutputs) {
   // check that multiple duplicate targets are properly unified
   std::string err;
   EXPECT_TRUE(Parse("foo foo: x y z", &err));
-  ASSERT_EQ("foo", parser_.out_.AsString());
+  ASSERT_EQ("foo", parser_.out_);
   ASSERT_EQ(3u, parser_.ins_.size());
-  EXPECT_EQ("x", parser_.ins_[0].AsString());
-  EXPECT_EQ("y", parser_.ins_[1].AsString());
-  EXPECT_EQ("z", parser_.ins_[2].AsString());
+  EXPECT_EQ("x", parser_.ins_[0]);
+  EXPECT_EQ("y", parser_.ins_[1]);
+  EXPECT_EQ("z", parser_.ins_[2]);
 }
 
 TEST_F(DepfileParserTest, RejectMultipleDifferentOutputs) {

@@ -23,7 +23,6 @@
 
 #ifdef _WIN32
 #include "includes_normalize.h"
-#include "string_piece.h"
 #else
 #include "util.h"
 #endif

@@ -16,10 +16,10 @@
 
 #include "test.h"
 
-TEST(StringPieceUtilTest, SplitStringPiece) {
+TEST(StringPieceUtilTest, SplitStringView) {
   {
     std::string input("a:b:c");
-    std::vector<StringPiece> list = SplitStringPiece(input, ':');
+    std::vector<std::string_view> list = SplitStringView(input, ':');
 
     EXPECT_EQ(list.size(), 3);
 
@@ -30,7 +30,7 @@ TEST(StringPieceUtilTest, SplitStringPiece) {
 
   {
     std::string empty("");
-    std::vector<StringPiece> list = SplitStringPiece(empty, ':');
+    std::vector<std::string_view> list = SplitStringView(empty, ':');
 
     EXPECT_EQ(list.size(), 1);
 
@@ -39,7 +39,7 @@ TEST(StringPieceUtilTest, SplitStringPiece) {
 
   {
     std::string one("a");
-    std::vector<StringPiece> list = SplitStringPiece(one, ':');
+    std::vector<std::string_view> list = SplitStringView(one, ':');
 
     EXPECT_EQ(list.size(), 1);
 
@@ -48,7 +48,7 @@ TEST(StringPieceUtilTest, SplitStringPiece) {
 
   {
     std::string sep_only(":");
-    std::vector<StringPiece> list = SplitStringPiece(sep_only, ':');
+    std::vector<std::string_view> list = SplitStringView(sep_only, ':');
 
     EXPECT_EQ(list.size(), 2);
 
@@ -58,7 +58,7 @@ TEST(StringPieceUtilTest, SplitStringPiece) {
 
   {
     std::string sep(":a:b:c:");
-    std::vector<StringPiece> list = SplitStringPiece(sep, ':');
+    std::vector<std::string_view> list = SplitStringView(sep, ':');
 
     EXPECT_EQ(list.size(), 5);
 
@@ -70,40 +70,40 @@ TEST(StringPieceUtilTest, SplitStringPiece) {
   }
 }
 
-TEST(StringPieceUtilTest, JoinStringPiece) {
+TEST(StringPieceUtilTest, JoinStringView) {
   {
     std::string input("a:b:c");
-    std::vector<StringPiece> list = SplitStringPiece(input, ':');
+    std::vector<std::string_view> list = SplitStringView(input, ':');
 
-    EXPECT_EQ("a:b:c", JoinStringPiece(list, ':'));
-    EXPECT_EQ("a/b/c", JoinStringPiece(list, '/'));
+    EXPECT_EQ("a:b:c", JoinStringView(list, ':'));
+    EXPECT_EQ("a/b/c", JoinStringView(list, '/'));
   }
 
   {
     std::string empty("");
-    std::vector<StringPiece> list = SplitStringPiece(empty, ':');
+    std::vector<std::string_view> list = SplitStringView(empty, ':');
 
-    EXPECT_EQ("", JoinStringPiece(list, ':'));
+    EXPECT_EQ("", JoinStringView(list, ':'));
   }
 
   {
-    std::vector<StringPiece> empty_list;
+    std::vector<std::string_view> empty_list;
 
-    EXPECT_EQ("", JoinStringPiece(empty_list, ':'));
+    EXPECT_EQ("", JoinStringView(empty_list, ':'));
   }
 
   {
     std::string one("a");
-    std::vector<StringPiece> single_list = SplitStringPiece(one, ':');
+    std::vector<std::string_view> single_list = SplitStringView(one, ':');
 
-    EXPECT_EQ("a", JoinStringPiece(single_list, ':'));
+    EXPECT_EQ("a", JoinStringView(single_list, ':'));
   }
 
   {
     std::string sep(":a:b:c:");
-    std::vector<StringPiece> list = SplitStringPiece(sep, ':');
+    std::vector<std::string_view> list = SplitStringView(sep, ':');
 
-    EXPECT_EQ(":a:b:c:", JoinStringPiece(list, ':'));
+    EXPECT_EQ(":a:b:c:", JoinStringView(list, ':'));
   }
 }
 

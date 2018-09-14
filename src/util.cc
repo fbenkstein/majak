@@ -104,6 +104,31 @@ bool CanonicalizePath(std::string* path, uint64_t* slash_bits,
   return true;
 }
 
+namespace {
+bool StringViewMatches(std::string_view v, const std::string& s) {
+  return (v.data() == nullptr && v.size() == 0) ||
+         (v.data() >= s.data() && v.size() + (v.data() - s.data()) <= s.size());
+}
+}  // namespace
+
+bool CanonicalizePath(std::string_view* path, std::string* data,
+                      uint64_t* slash_bits, std::string* err) {
+  if (path->size() == 0) {
+    *err = "empty path";
+    return false;
+  } else if (!StringViewMatches(*path, *data)) {
+    *err = "string_view doesn't match data";
+    return false;
+  }
+
+  size_t len = path->size();
+  char* str = const_cast<char*>(path->data());
+  if (!CanonicalizePath(str, &len, slash_bits, err))
+    return false;
+  *path = std::string_view(str, len);
+  return true;
+}
+
 static bool IsPathSeparator(char c) {
 #ifdef _WIN32
   return c == '/' || c == '\\';

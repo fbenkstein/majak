@@ -46,6 +46,8 @@ bool CanonicalizePath(std::string* path, uint64_t* slash_bits,
                       std::string* err);
 bool CanonicalizePath(char* path, size_t* len, uint64_t* slash_bits,
                       std::string* err);
+bool CanonicalizePath(std::string_view* path, std::string* data,
+                      uint64_t* slash_bits, std::string* err);
 
 /// Appends |input| to |*result|, escaping according to the whims of either
 /// Bash, or Win32's CommandLineToArgvW().

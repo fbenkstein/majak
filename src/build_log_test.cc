@@ -50,7 +50,7 @@ struct BuildLogTest : public StateTestWithBuiltinRules, public BuildLogUser {
     RemoveTestFile();
   }
   virtual void TearDown() { RemoveTestFile(); }
-  virtual bool IsPathDead(StringPiece s) const { return false; }
+  virtual bool IsPathDead(std::string_view s) const { return false; }
 };
 
 TEST_F(BuildLogTest, WriteRead) {
@@ -276,7 +276,7 @@ TEST_F(BuildLogTest, MultiTargetEdge) {
 }
 
 struct BuildLogRecompactTest : public BuildLogTest {
-  virtual bool IsPathDead(StringPiece s) const { return s == "out2"; }
+  virtual bool IsPathDead(std::string_view s) const { return s == "out2"; }
 };
 
 TEST_F(BuildLogRecompactTest, Recompact) {

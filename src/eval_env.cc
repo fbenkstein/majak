@@ -99,16 +99,16 @@ std::string EvalString::Evaluate(Env* env) const {
   return result;
 }
 
-void EvalString::AddText(StringPiece text) {
+void EvalString::AddText(std::string_view text) {
   // Add it to the end of an existing RAW token if possible.
   if (!parsed_.empty() && parsed_.back().second == RAW) {
-    parsed_.back().first.append(text.str_, text.len_);
+    parsed_.back().first.append(text.data(), text.size());
   } else {
-    parsed_.push_back(make_pair(text.AsString(), RAW));
+    parsed_.push_back(make_pair(std::string(text), RAW));
   }
 }
-void EvalString::AddSpecial(StringPiece text) {
-  parsed_.push_back(make_pair(text.AsString(), SPECIAL));
+void EvalString::AddSpecial(std::string_view text) {
+  parsed_.push_back(make_pair(std::string(text), SPECIAL));
 }
 
 std::string EvalString::Serialize() const {

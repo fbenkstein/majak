@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#include "string_piece.h"
+#include <string_view>
 
 /// Utility functions for normalizing include paths on Windows.
 /// TODO: this likely duplicates functionality of CanonicalizePath; refactor.
@@ -24,9 +24,9 @@ struct IncludesNormalize {
   IncludesNormalize(const std::string& relative_to);
 
   // Internal utilities made available for testing, maybe useful otherwise.
-  static std::string AbsPath(StringPiece s);
-  static std::string Relativize(StringPiece path,
-                                const std::vector<StringPiece>& start_list);
+  static std::string AbsPath(std::string_view s);
+  static std::string Relativize(
+      std::string_view path, const std::vector<std::string_view>& start_list);
 
   /// Normalize by fixing slashes style, fixing redundant .. and . and makes the
   /// path |input| relative to |this->relative_to_| and store to |result|.
@@ -35,5 +35,5 @@ struct IncludesNormalize {
 
  private:
   std::string relative_to_;
-  std::vector<StringPiece> split_relative_to_;
+  std::vector<std::string_view> split_relative_to_;
 };

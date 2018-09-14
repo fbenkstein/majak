@@ -18,17 +18,17 @@
 #include <string>
 #include <vector>
 
-#include "string_piece.h"
+#include <string_view>
 
 /// Parser for the dependency information emitted by gcc's -M flags.
 struct DepfileParser {
   /// Parse an input file.  Input must be NUL-terminated.
-  /// Warning: may mutate the content in-place and parsed StringPieces are
+  /// Warning: may mutate the content in-place and parsed std::string_views are
   /// pointers within it.
   bool Parse(std::string* content, std::string* err);
 
-  StringPiece out_;
-  std::vector<StringPiece> ins_;
+  std::string_view out_;
+  std::vector<std::string_view> ins_;
 };
 
 #endif  // NINJA_DEPFILE_PARSER_H_

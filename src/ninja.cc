@@ -49,7 +49,7 @@
 #include "version.h"
 
 inline namespace ninja {
-bool NinjaMain::IsPathDead(StringPiece s) const {
+bool NinjaMain::IsPathDead(std::string_view s) const {
   Node* n = state_.LookupNode(s);
   if (!n || !n->in_edge())
     return false;
@@ -63,7 +63,7 @@ bool NinjaMain::IsPathDead(StringPiece s) const {
   // Do keep entries around for files which still exist on disk, for
   // generators that want to use this information.
   std::string err;
-  TimeStamp mtime = disk_interface_.Stat(s.AsString(), &err);
+  TimeStamp mtime = disk_interface_.Stat(std::string(s), &err);
   if (mtime == -1)
     Error("%s", err.c_str());  // Log and ignore Stat() errors.
   return mtime == 0;

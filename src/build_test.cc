@@ -478,7 +478,7 @@ struct BuildTest : public StateTestWithBuiltinRules, public BuildLogUser {
 
   ~BuildTest() { builder_.command_runner_.release(); }
 
-  virtual bool IsPathDead(StringPiece s) const { return false; }
+  virtual bool IsPathDead(std::string_view s) const { return false; }
 
   /// Rebuild target in the 'working tree' (fs_).
   /// State of command_runner_ and logs contents (if specified) ARE MODIFIED.

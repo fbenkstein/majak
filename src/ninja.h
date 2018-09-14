@@ -128,7 +128,7 @@ struct NinjaMain : public BuildLogUser {
   /// Dump the output requested by '-d stats'.
   void DumpMetrics();
 
-  bool IsPathDead(StringPiece s) const override;
+  bool IsPathDead(std::string_view s) const override;
 };
 
 /// Subtools, accessible via "-t foo".
