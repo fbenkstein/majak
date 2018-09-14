@@ -61,9 +61,9 @@ bool SameDrive(std::string_view a, std::string_view b) {
 
   char a_absolute[_MAX_PATH];
   char b_absolute[_MAX_PATH];
-  GetFullPathNameA(a.AsString().c_str(), sizeof(a_absolute), a_absolute,
+  GetFullPathNameA(std::string(a).c_str(), sizeof(a_absolute), a_absolute,
                    nullptr);
-  GetFullPathNameA(b.AsString().c_str(), sizeof(b_absolute), b_absolute,
+  GetFullPathNameA(std::string(b).c_str(), sizeof(b_absolute), b_absolute,
                    nullptr);
   char a_drive[_MAX_DIR];
   char b_drive[_MAX_DIR];
@@ -107,12 +107,12 @@ bool IsFullPathName(std::string_view s) {
 
 IncludesNormalize::IncludesNormalize(const std::string& relative_to) {
   relative_to_ = AbsPath(relative_to);
-  split_relative_to_ = Splitstd::string_view(relative_to_, '/');
+  split_relative_to_ = SplitStringView(relative_to_, '/');
 }
 
 std::string IncludesNormalize::AbsPath(std::string_view s) {
   if (IsFullPathName(s)) {
-    std::string result = s.AsString();
+    std::string result = std::string(s);
     for (size_t i = 0; i < result.size(); ++i) {
       if (result[i] == '\\') {
         result[i] = '/';
@@ -122,7 +122,7 @@ std::string IncludesNormalize::AbsPath(std::string_view s) {
   }
 
   char result[_MAX_PATH];
-  GetFullPathNameA(s.AsString().c_str(), sizeof(result), result, nullptr);
+  GetFullPathNameA(std::string(s).c_str(), sizeof(result), result, nullptr);
   for (char* c = result; *c; ++c)
     if (*c == '\\')
       *c = '/';
@@ -132,8 +132,7 @@ std::string IncludesNormalize::AbsPath(std::string_view s) {
 std::string IncludesNormalize::Relativize(
     std::string_view path, const std::vector<std::string_view>& start_list) {
   std::string abs_path = AbsPath(path);
-  std::vector<std::string_view> path_list =
-      Splitstd::string_view(abs_path, '/');
+  std::vector<std::string_view> path_list = SplitStringView(abs_path, '/');
   int i;
   for (i = 0;
        i < static_cast<int>(std::min(start_list.size(), path_list.size()));
@@ -170,7 +169,7 @@ bool IncludesNormalize::Normalize(const std::string& input, std::string* result,
   std::string abs_input = AbsPath(partially_fixed);
 
   if (!SameDrive(abs_input, relative_to_)) {
-    *result = partially_fixed.AsString();
+    *result = std::string(partially_fixed);
     return true;
   }
   *result = Relativize(abs_input, split_relative_to_);
