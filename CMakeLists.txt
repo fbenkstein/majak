@@ -368,10 +368,20 @@ if (NINJA_BUILD_TESTS)
         manifest_parser_perftest
         clparser_perftest
     )
+    set(
+        ninja_bench_perftests
+
+        canon_bench
+    )
 
     foreach(perftest_name IN LISTS ninja_perftests)
         add_executable(${perftest_name} src/${perftest_name}.cc)
         target_link_libraries(${perftest_name} libninja)
+    endforeach()
+
+    foreach(perftest_name IN LISTS ninja_bench_perftests)
+        add_executable(${perftest_name} src/${perftest_name}.cc)
+        target_link_libraries(${perftest_name} libninja benchmark)
     endforeach()
 endif()
 
