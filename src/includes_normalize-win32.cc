@@ -26,10 +26,6 @@
 
 namespace {
 
-bool IsPathSeparator(char c) {
-  return c == '/' || c == '\\';
-}
-
 // Return true if paths a and b are on the same windows drive.
 // Return false if this funcation cannot check
 // whether or not on the same windows drive.

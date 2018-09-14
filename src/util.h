@@ -102,4 +102,7 @@ std::string GetLastErrorString();
 /// Returns the current working directory. An empty string is returned on error.
 std::string GetCwd(std::string* err);
 
+/// Returns if the given character is a path separator.
+bool IsPathSeparator(char c);
+
 #endif  // NINJA_UTIL_H_

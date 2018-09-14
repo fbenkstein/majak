@@ -129,7 +129,7 @@ bool CanonicalizePath(std::string_view* path, std::string* data,
   return true;
 }
 
-static bool IsPathSeparator(char c) {
+bool IsPathSeparator(char c) {
 #ifdef _WIN32
   return c == '/' || c == '\\';
 #else
