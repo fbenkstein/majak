@@ -33,9 +33,10 @@ option(
 )
 option(
     NINJA_BUILD_TESTS
-    "Build ninja tests."
+    "Build ninja tests and benchmarks."
     ON
 )
+
 add_feature_info(
     build_tests
     "${NINJA_BUILD_TESTS}"
@@ -55,6 +56,11 @@ if (NINJA_BUILD_TESTS)
             ]=]
         )
     endif()
+
+    set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
+    add_subdirectory(ext/benchmark EXCLUDE_FROM_ALL)
 endif()
 
 if (MSVC)
