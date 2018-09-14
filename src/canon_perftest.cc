@@ -12,33 +12,93 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <benchmark/benchmark.h>
 #include <stdio.h>
 #include <string.h>
-#include <benchmark/benchmark.h>
 
+#include "filesystem.h"
 #include "metrics.h"
 #include "util.h"
 
-const char kPath[] =
+namespace fs = ninja::fs;
+
+namespace {
+
+constexpr char kPath[] =
     "../../third_party/WebKit/Source/WebCore/"
     "platform/leveldb/LevelDBWriteBatch.cpp";
+}  // namespace
 
-static void BM_CanonicalizePath(benchmark::State& state)
-{
-    std::string err;
+/// Keep comparable with legacy ninja.
+static void BM_CanonicalizePathLegacy(benchmark::State& state) {
+  std::string err;
 
-    const int kNumRepetitions = 2000000;
-    uint64_t slash_bits;
-    char buf[200];
-    size_t len = strlen(kPath);
-    strcpy(buf, kPath);
+  constexpr int kNumRepetitions = 2000000;
+  uint64_t slash_bits;
+  char buf[200];
+  size_t len = strlen(kPath);
+  strcpy(buf, kPath);
 
-    for (auto _ : state) {
-        for (int i = 0; i < kNumRepetitions; ++i) {
-            CanonicalizePath(buf, &len, &slash_bits, &err);
-        }
+  for (auto _ : state) {
+    for (int i = 0; i < kNumRepetitions; ++i) {
+      CanonicalizePath(buf, &len, &slash_bits, &err);
     }
+  }
+}
+BENCHMARK(BM_CanonicalizePathLegacy)->Unit(benchmark::kMillisecond);
+
+static void BM_CanonicalizePath(benchmark::State& state) {
+  std::string err;
+
+  uint64_t slash_bits;
+  char buf[200];
+  size_t len = strlen(kPath);
+  strcpy(buf, kPath);
+
+  for (auto _ : state) {
+    CanonicalizePath(buf, &len, &slash_bits, &err);
+  }
 }
 BENCHMARK(BM_CanonicalizePath);
+
+static void BM_EmptyPath(benchmark::State& state) {
+  for (auto _ : state) {
+    fs::path p;
+    benchmark::DoNotOptimize(p);
+  }
+}
+BENCHMARK(BM_EmptyPath);
+
+static void BM_EmptyPathPauseResume(benchmark::State& state) {
+  for (auto _ : state) {
+    state.PauseTiming();
+    state.ResumeTiming();
+    fs::path p;
+    benchmark::DoNotOptimize(p);
+  }
+}
+BENCHMARK(BM_EmptyPathPauseResume);
+
+static void BM_StringToPath(benchmark::State& state) {
+    for (auto _ : state) {
+        state.PauseTiming();
+        std::string s = kPath;
+        state.ResumeTiming();
+        fs::path p(std::move(s));
+        benchmark::DoNotOptimize(p);
+    }
+}
+BENCHMARK(BM_StringToPath);
+
+static void BM_PathToPath(benchmark::State& state) {
+    for (auto _ : state) {
+        state.PauseTiming();
+        fs::path s = kPath;
+        state.ResumeTiming();
+        fs::path p(std::move(s));
+        benchmark::DoNotOptimize(p);
+    }
+}
+BENCHMARK(BM_PathToPath);
 
 BENCHMARK_MAIN();
