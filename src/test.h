@@ -16,6 +16,7 @@
 #define NINJA_TEST_H_
 
 #include "disk_interface.h"
+#include "filesystem.h"
 #include "manifest_parser.h"
 #include "state.h"
 #include "util.h"
@@ -93,7 +94,7 @@ struct ScopedTempDir {
   void Cleanup();
 
   /// The temp directory containing our dir.
-  std::string start_dir_;
+  ninja::fs::path start_dir_;
   /// The subdirectory name for our dir, or empty if it hasn't been set up.
   std::string temp_dir_name_;
 };

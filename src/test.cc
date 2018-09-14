@@ -12,72 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef _WIN32
-#include <direct.h>  // Has to be before util.h is included.
-#endif
-
 #include "test.h"
 
 #include <algorithm>
+#include <random>
 
-#include <errno.h>
 #include <stdlib.h>
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 
 #include "build_log.h"
 #include "graph.h"
 #include "manifest_parser.h"
 #include "util.h"
 
+namespace fs = ninja::fs;
+
 namespace {
+std::string MakeTempDir(std::string_view prefix, std::string* err) {
+  constexpr size_t tries = 100;
+  constexpr size_t suffix_length = 6;
+  std::random_device rd;
+  std::string name = std::string(prefix) + "-";
+  size_t suffix_start = name.size();
+  name.resize(suffix_start + suffix_length, '0');
 
-#ifdef _WIN32
-#ifndef _mktemp_s
-/// mingw has no mktemp.  Implement one with the same type as the one
-/// found in the Windows API.
-int _mktemp_s(char* templ) {
-  char* ofs = strchr(templ, 'X');
-  sprintf(ofs, "%d", rand() % 1000000);
-  return 0;
-}
-#endif
+  for (size_t i = 0; i < tries; ++i) {
+    std::generate_n(name.begin() + suffix_start, suffix_length, [&rd] {
+      return static_cast<char>(
+          std::uniform_int_distribution<int>('0', '9')(rd));
+    });
 
-/// Windows has no mkdtemp.  Implement it in terms of _mktemp_s.
-char* mkdtemp(char* name_template) {
-  int err = _mktemp_s(name_template);
-  if (err < 0) {
-    perror("_mktemp_s");
-    return nullptr;
+    std::error_code ec;
+
+    if (!fs::exists(name) && fs::create_directory(name, ec)) {
+      return name;
+    } else if (ec) {
+      *err = "could not create directory '" + name + "': " + ec.message();
+    }
   }
 
-  err = _mkdir(name_template);
-  if (err < 0) {
-    perror("mkdir");
-    return nullptr;
-  }
-
-  return name_template;
+  *err = "failed create random directory after " + std::to_string(tries) +
+         " tries";
+  return {};
 }
-#endif  // _WIN32
-
-std::string GetSystemTempDir() {
-#ifdef _WIN32
-  char buf[1024];
-  if (!GetTempPath(sizeof(buf), buf))
-    return "";
-  return buf;
-#else
-  const char* tempdir = getenv("TMPDIR");
-  if (tempdir)
-    return tempdir;
-  return "/tmp";
-#endif
-}
-
 }  // anonymous namespace
 
 StateTestWithBuiltinRules::StateTestWithBuiltinRules() {
@@ -194,25 +170,28 @@ int VirtualFileSystem::RemoveFile(const std::string& path) {
 }
 
 void ScopedTempDir::CreateAndEnter(const std::string& name) {
+  std::error_code ec;
+
   // First change into the system temp dir and save it for cleanup.
-  start_dir_ = GetSystemTempDir();
-  if (start_dir_.empty())
-    Fatal("couldn't get system temp dir");
-  if (chdir(start_dir_.c_str()) < 0)
-    Fatal("chdir: %s", strerror(errno));
+  start_dir_ = fs::temp_directory_path(ec);
+  if (ec)
+    Fatal("couldn't get system temp dir: %s", ec.message().c_str());
+  fs::current_path(start_dir_, ec);
+  if (ec)
+    Fatal("chdir: %s", ec.message().c_str());
 
   // Create a temporary subdirectory of that.
-  char name_template[1024];
-  strcpy(name_template, name.c_str());
-  strcat(name_template, "-XXXXXX");
-  char* tempname = mkdtemp(name_template);
-  if (!tempname)
-    Fatal("mkdtemp: %s", strerror(errno));
-  temp_dir_name_ = tempname;
+  std::string err;
+  temp_dir_name_ = MakeTempDir(name, &err);
+
+  if (!err.empty()) {
+    Fatal("MakeTempDir: %s", err.c_str());
+  }
 
   // chdir into the new temporary directory.
-  if (chdir(temp_dir_name_.c_str()) < 0)
-    Fatal("chdir: %s", strerror(errno));
+  fs::current_path(temp_dir_name_, ec);
+  if (ec)
+    Fatal("chdir: %s", ec.message().c_str());
 }
 
 void ScopedTempDir::Cleanup() {
@@ -220,16 +199,12 @@ void ScopedTempDir::Cleanup() {
     return;  // Something went wrong earlier.
 
   // Move out of the directory we're about to clobber.
-  if (chdir(start_dir_.c_str()) < 0)
-    Fatal("chdir: %s", strerror(errno));
+  std::error_code ec;
+  fs::current_path(start_dir_, ec);
+  if (ec)
+    Fatal("chdir: %s", ec.message().c_str());
 
-#ifdef _WIN32
-  std::string command = "rmdir /s /q " + temp_dir_name_;
-#else
-  std::string command = "rm -rf " + temp_dir_name_;
-#endif
-  if (system(command.c_str()) < 0)
-    Fatal("system: %s", strerror(errno));
+  fs::remove_all(temp_dir_name_);
 
   temp_dir_name_.clear();
 }
