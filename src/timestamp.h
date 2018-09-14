@@ -15,8 +15,8 @@
 #ifndef NINJA_TIMESTAMP_H_
 #define NINJA_TIMESTAMP_H_
 
-#include <cstdint>
 #include <cinttypes>
+#include <cstdint>
 
 // When considering file modification times we only care to compare
 // them against one another -- we never convert them to an absolute
