@@ -15,12 +15,7 @@
 #ifndef NINJA_UTIL_H_
 #define NINJA_UTIL_H_
 
-#ifdef _WIN32
-#include "win32port.h"
-#else
-#include <stdint.h>
-#endif
-
+#include <cstdint>
 #include <string>
 #include <vector>
 
