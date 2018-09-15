@@ -14,6 +14,8 @@
 
 #include "util.h"
 
+#include "filesystem.h"
+
 #ifdef __CYGWIN__
 #include <io.h>
 #include <windows.h>
@@ -607,20 +609,14 @@ std::string ElideMiddle(const std::string& str, size_t width) {
 }
 
 bool Truncate(const std::string& path, size_t size, std::string* err) {
-#ifdef _WIN32
-  int fh = _sopen(path.c_str(), _O_RDWR | _O_CREAT, _SH_DENYNO,
-                  _S_IREAD | _S_IWRITE);
-  int success = _chsize(fh, size);
-  _close(fh);
-#else
-  int success = truncate(path.c_str(), size);
-#endif
-  // Both truncate() and _chsize() return 0 on success and set errno and return
-  // -1 on failure.
-  if (success < 0) {
-    *err = strerror(errno);
+  ninja::error_code ec;
+  ninja::fs::resize_file(path, size, ec);
+
+  if (ec) {
+    *err = ec.message();
     return false;
   }
+
   return true;
 }
 
