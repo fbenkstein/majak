@@ -621,16 +621,13 @@ bool Truncate(const std::string& path, size_t size, std::string* err) {
 }
 
 std::string GetCwd(std::string* err) {
-  std::string cwd;
+  ninja::error_code ec;
+  auto cwd = ninja::fs::current_path(ec);
 
-  do {
-    cwd.resize(cwd.size() + 1024);
-    errno = 0;
-  } while (!getcwd(&cwd[0], cwd.size()) && errno == ERANGE);
-  if (errno != 0 && errno != ERANGE) {
-    *err = strerror(errno);
+  if (ec) {
+    *err = ec.message();
     return {};
   }
 
-  return cwd;
+  return cwd.string();
 }
