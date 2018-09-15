@@ -15,18 +15,23 @@
 #ifndef NINJA_FILESYSTEM_H_
 #define NINJA_FILESYSTEM_H_
 
-#if __has_include(<filesystem>)
-#include <filesystem>
-namespace ninja {
-namespace fs = std::filesystem;
-}
-#elif __has_include(<experimental/filesystem>)
-#include <experimental/filesystem>
-namespace ninja {
-namespace fs = std::experimental::filesystem;
-}
-#else
-#error no filesystem library available
-#endif
+#include <functional>
 
-#endif  // NINJA_FILESYSTEM_H_
+#include "ninja_config.h"
+
+#define NINJA_FILESYSTEM_INCLUDE_ <NINJA_FILESYSTEM_INCLUDE>
+#include NINJA_FILESYSTEM_INCLUDE_
+
+namespace ninja {
+namespace fs = NINJA_FILESYSTEM_NAMESPACE;
+
+
+template <class T, class U>
+auto __get_error_code_type_helper(T(*f)(U&))
+{
+    return U{};
+}
+using error_code = decltype(__get_error_code_type_helper(&fs::temp_directory_path));
+}
+
+#endif // NINJA_FILESYSTEM_H_

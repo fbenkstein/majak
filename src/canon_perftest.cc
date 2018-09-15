@@ -22,20 +22,13 @@
 #include "metrics.h"
 #include "util.h"
 
-#if __has_include(<boost/filesystem.hpp>) && __cpp_exceptions
-#include <boost/filesystem.hpp>
-#define HAS_BOOST_FS 1
-namespace boost_fs = boost::filesystem;
-#endif
-
 namespace fs = ninja::fs;
-using namespace std::string_view_literals;
 
 namespace {
 
-constexpr std::string_view kPaths[] = {
-  "../../third_party/WebKit/Source/WebCore/platform/leveldb/LevelDBWriteBatch.cpp"sv,
-  "/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu"sv,
+constexpr const char* kPaths[] = {
+  "../../third_party/WebKit/Source/WebCore/platform/leveldb/LevelDBWriteBatch.cpp",
+  "/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu",
 };
 
 double now() {
@@ -108,7 +101,7 @@ BENCHMARK(BM_StringToPath)->UseManualTime();
 
 static void BM_PathToPath(benchmark::State& state) {
   for (auto _ : state) {
-    fs::path s(kPaths[0]);
+      fs::path s(kPaths[0]);
     auto start = now();
     fs::path p(std::move(s));
     benchmark::DoNotOptimize(p);
@@ -129,40 +122,6 @@ static void BM_PathAssignToPath(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_PathAssignToPath)->UseManualTime();
-
-#if HAS_BOOST_FS
-static void BM_BoostEmptyPath(benchmark::State& state) {
-  for (auto _ : state) {
-    auto start = now();
-    boost_fs::path p;
-    benchmark::DoNotOptimize(p);
-    state.SetIterationTime(now() - start);
-  }
-}
-BENCHMARK(BM_BoostEmptyPath)->UseManualTime();
-
-static void BM_BoostStringToPath(benchmark::State& state) {
-  for (auto _ : state) {
-    std::string s(kPaths[0]);
-    auto start = now();
-    boost_fs::path p(std::move(s));
-    benchmark::DoNotOptimize(p);
-    state.SetIterationTime(now() - start);
-  }
-}
-BENCHMARK(BM_BoostStringToPath)->UseManualTime();
-
-static void BM_BoostPathToPath(benchmark::State& state) {
-  for (auto _ : state) {
-    boost_fs::path s{ std::string{ kPaths[0] } };
-    auto start = now();
-    boost_fs::path p(std::move(s));
-    benchmark::DoNotOptimize(p);
-    state.SetIterationTime(now() - start);
-  }
-}
-BENCHMARK(BM_BoostPathToPath)->UseManualTime();
-#endif  // HAS_BOOST_FS
 
 static void BM_Baseline(benchmark::State& state) {
   for (auto _ : state) {

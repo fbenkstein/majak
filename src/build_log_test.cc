@@ -14,6 +14,7 @@
 
 #include "build_log.h"
 
+#include "filesystem.h"
 #include "test.h"
 #include "util.h"
 
@@ -26,15 +27,7 @@
 #include <unistd.h>
 #endif
 
-#if __has_include(<filesystem>)
-#include <filesystem>
-namespace fs = std::filesystem;
-#elif __has_include(<experimental/filesystem>)
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#else
-#error no filesystem library available
-#endif
+namespace fs = ninja::fs;
 
 namespace {
 
@@ -42,7 +35,7 @@ const char kTestFilename[] = "BuildLogTest-tempfile";
 
 struct BuildLogTest : public StateTestWithBuiltinRules, public BuildLogUser {
   void RemoveTestFile() {
-    std::error_code ignore;
+    ninja::error_code ignore;
     fs::remove(kTestFilename, ignore);
   }
   virtual void SetUp() {

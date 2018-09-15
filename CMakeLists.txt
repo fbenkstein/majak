@@ -9,7 +9,6 @@ find_package(PythonInterp 3)
 if (NOT PYTHONINTERP_FOUND)
     find_package(PythonInterp 2.7)
 endif()
-find_package(Boost COMPONENTS filesystem)
 find_package(Doxygen OPTIONAL_COMPONENTS dot)
 find_program(NINJA_ASCIIDOC_EXECUTABLE asciidoc)
 find_program(NINJA_XSLTPROC_EXECUTABLE xsltproc)
@@ -24,6 +23,11 @@ include(utils)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+ninja_find_filesystem_library()
+message(STATUS "NINJA_FILESYSTEM_INCLUDE: ${NINJA_FILESYSTEM_INCLUDE}")
+message(STATUS "NINJA_FILESYSTEM_NAMESPACE: ${NINJA_FILESYSTEM_NAMESPACE}")
+message(STATUS "NINJA_FILESYSTEM_LIBRARY: ${NINJA_FILESYSTEM_LIBRARY}")
+
 option(
     NINJA_FORCE_PSELECT
     [=[
@@ -37,11 +41,15 @@ option(
     "Build ninja tests and benchmarks."
     ON
 )
-option(
-    NINJA_ENABLE_EXCEPTIONS
-    "Build ninja with exceptions enabled."
-    OFF
-)
+if (NINJA_FILESYSTEM_NAMESPACE STREQUAL "boost::filesystem")
+    set(NINJA_ENABLE_EXCEPTIONS ON CACHE INTERNAL FORCE "")
+else()
+    option(
+        NINJA_ENABLE_EXCEPTIONS
+        "Build ninja with exceptions enabled."
+        OFF
+    )
+endif()
 option(
     NINJA_ENABLE_RTTI
     "Build ninja with RTTI enabled"
@@ -53,6 +61,8 @@ add_feature_info(
     "${NINJA_BUILD_TESTS}"
     "build tests for ninja."
 )
+
+
 
 if (NINJA_BUILD_TESTS)
     enable_testing()
@@ -143,35 +153,6 @@ else()
 
         src/subprocess-posix.cc
     )
-
-    set(
-        std_filesystem_check_source
-        [=[
-        #if __has_include(<filesystem>)
-        #include <filesystem>
-        namespace fs = std::filesystem;
-        #elif __has_include(<experimental/filesystem>)
-        #include <experimental/filesystem>
-        namespace fs = std::experimental::filesystem;
-        #else
-        #error no filesystem library available
-        #endif
-
-        int main() { fs::path p = fs::current_path(); }
-        ]=]
-    )
-
-    check_cxx_source_compiles(std_filesystem_check_source NINJA_STD_FILESYSTEM_WORKS)
-
-    if (NOT NINJA_STD_FILESYSTEM_WITHOUT_LIBSTDCXXFS)
-        set(CMAKE_REQUIRED_LIBRARIES "stdc++fs")
-        check_cxx_source_compiles("${std_filesystem_check_source}" NINJA_STD_FILESYSTEM_WORKS_WITH_LIBSTDCXXFS)
-
-        if (NINJA_STD_FILESYSTEM_WORKS_WITH_LIBSTDCXXFS)
-            set(ninja_filesystem_library stdc++fs)
-        endif()
-        unset(CMAKE_REQUIRED_LIBRARIES)
-    endif()
 endif()
 
 check_cxx_source_compiles(
@@ -328,8 +309,8 @@ target_compile_definitions(
 )
 target_include_directories(libninja PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
-if (ninja_filesystem_library)
-    target_link_libraries(libninja PRIVATE "${ninja_filesystem_library}")
+if (NINJA_FILESYSTEM_LIBRARY)
+    target_link_libraries(libninja PUBLIC "${NINJA_FILESYSTEM_LIBRARY}")
 endif()
 
 add_executable(ninja src/ninja_main.cc)
@@ -370,7 +351,7 @@ if (NINJA_BUILD_TESTS)
     endif()
 
     add_executable(ninja_test ${ninja_test_sources})
-    target_link_libraries(ninja_test libninja gtest gtest_main)
+    target_link_libraries(ninja_test ${ninja_filesystem_library} libninja gtest gtest_main)
     if (COMMAND gtest_discover_tests)
         gtest_discover_tests(ninja_test)
     else()
