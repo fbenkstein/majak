@@ -361,7 +361,6 @@ if (NINJA_BUILD_TESTS)
     set(
         ninja_perftests
 
-        build_log_perftest
         depfile_parser_perftest
         hash_collision_bench
         manifest_parser_perftest
@@ -370,6 +369,7 @@ if (NINJA_BUILD_TESTS)
     set(
         ninja_bench_perftests
 
+        build_log_perftest
         canon_perftest
     )
 

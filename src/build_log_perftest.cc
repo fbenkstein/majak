@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <benchmark/benchmark.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "build_log.h"
+#include "filesystem.h"
 #include "graph.h"
 #include "manifest_parser.h"
 #include "metrics.h"
@@ -25,6 +27,13 @@
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+
+namespace {
+double now() {
+  return std::chrono::duration_cast<std::chrono::duration<double>>(
+             std::chrono::high_resolution_clock::now().time_since_epoch())
+      .count();
+}
 
 const char kTestFilename[] = "BuildLogPerfTest-tempfile";
 
@@ -97,51 +106,39 @@ bool WriteTestData(std::string* err) {
 
   return true;
 }
+}  // anonymous namespace
 
-int main() {
-  std::vector<int> times;
+void BM_BuildLogLoad(benchmark::State& state) {
   std::string err;
+  ninja::error_code ec;
+  ninja::fs::remove(kTestFilename, ec);
 
   if (!WriteTestData(&err)) {
-    fprintf(stderr, "Failed to write test data: %s\n", err.c_str());
-    return 1;
+    state.SkipWithError(("Failed to write test data: " + err).c_str());
+    return;
   }
 
   {
     // Read once to warm up disk cache.
     BuildLog log;
     if (!log.Load(kTestFilename, &err)) {
-      fprintf(stderr, "Failed to read test data: %s\n", err.c_str());
-      return 1;
+      state.SkipWithError(("Failed to load test data: " + err).c_str());
+      return;
     }
   }
-  const int kNumRepetitions = 5;
-  for (int i = 0; i < kNumRepetitions; ++i) {
-    int64_t start = GetTimeMillis();
+
+  for (auto _ : state) {
+    auto start = now();
     BuildLog log;
     if (!log.Load(kTestFilename, &err)) {
-      fprintf(stderr, "Failed to read test data: %s\n", err.c_str());
-      return 1;
+      state.SkipWithError(("Failed to load test data: " + err).c_str());
+      return;
     }
-    int delta = (int)(GetTimeMillis() - start);
-    printf("%dms\n", delta);
-    times.push_back(delta);
+    state.SetIterationTime(now() - start);
   }
 
-  int min = times[0];
-  int max = times[0];
-  float total = 0;
-  for (size_t i = 0; i < times.size(); ++i) {
-    total += times[i];
-    if (times[i] < min)
-      min = times[i];
-    else if (times[i] > max)
-      max = times[i];
-  }
-
-  printf("min %dms  max %dms  avg %.1fms\n", min, max, total / times.size());
-
-  unlink(kTestFilename);
-
-  return 0;
+  ninja::fs::remove(kTestFilename, ec);
 }
+BENCHMARK(BM_BuildLogLoad)->Unit(benchmark::kMillisecond)->UseManualTime();
+
+BENCHMARK_MAIN();
