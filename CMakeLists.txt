@@ -31,7 +31,7 @@ message(STATUS "NINJA_FILESYSTEM_LIBRARY: ${NINJA_FILESYSTEM_LIBRARY}")
 option(
     NINJA_FORCE_PSELECT
     [=[
-    ppoll() is used by default where available, 
+    ppoll() is used by default where available,
     but some platforms may need to use pselect instead'
     ]=]
     OFF
@@ -62,8 +62,6 @@ add_feature_info(
     "build tests for ninja."
 )
 
-
-
 if (NINJA_BUILD_TESTS)
     enable_testing()
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -83,6 +81,11 @@ if (NINJA_BUILD_TESTS)
     set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
     add_subdirectory(ext/benchmark EXCLUDE_FROM_ALL)
 endif()
+
+set(FLATBUFFERS_INSTALL OFF CACHE BOOL "" FORCE)
+set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(FLATBUFFERS_LIBCXX_WITH_CLANG OFF CACHE BOOL "" FORCE)
+add_subdirectory(ext/flatbuffers EXCLUDE_FROM_ALL)
 
 if (MSVC)
     fix_default_msvc_settings()
@@ -308,10 +311,7 @@ target_compile_definitions(
     PRIVATE ${ninja_private_compile_definitions}
 )
 target_include_directories(libninja PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
-
-if (NINJA_FILESYSTEM_LIBRARY)
-    target_link_libraries(libninja PUBLIC "${NINJA_FILESYSTEM_LIBRARY}")
-endif()
+target_link_libraries(libninja PUBLIC flatbuffers "${NINJA_FILESYSTEM_LIBRARY}")
 
 add_executable(ninja src/ninja_main.cc)
 target_link_libraries(ninja libninja)
