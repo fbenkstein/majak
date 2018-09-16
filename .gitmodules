@@ -5,3 +5,6 @@
 [submodule "ext/benchmark"]
 	path = ext/benchmark
 	url = https://github.com/google/benchmark.git
+[submodule "ext/flatbuffers"]
+	path = ext/flatbuffers
+	url = https://github.com/google/flatbuffers.git
