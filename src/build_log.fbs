@@ -6,9 +6,9 @@ table BuildLogEntry {
   /// Hash off the command.
   command_hash:uint64;
   /// Time from the start of the build that this command was started.
-  start_time:uint32;
+  start_time:int32;
   /// Time from the start of the build that this command finished.
-  end_time:uint32;
+  end_time:int32;
   /// Timestamp of the output.
-  mtime:uint64;
+  mtime:int64;
 }
