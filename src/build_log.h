@@ -41,6 +41,12 @@ struct BuildLogUser {
 /// 2) timing information, perhaps for generating reports
 /// 3) restat information
 struct BuildLog {
+  static const char* const kFileSignature;
+  static const int kCurrentVersion;
+  static const int kOldestSupportedVersion;
+  static const char* const kFilename;
+  static const char* const kSchema;
+
   BuildLog();
   ~BuildLog();
 

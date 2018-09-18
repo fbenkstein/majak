@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <climits>
 #include <cstring>
+#include <iostream>
 #include <utility>
 
 #ifdef _WIN32
@@ -32,6 +33,8 @@
 #else
 #include "getopt.h"
 #endif
+
+#include <flatbuffers/idl.h>
 
 #include "manifest_parser.h"
 #include "ninja.h"
@@ -50,6 +53,7 @@ options:
 commands:
   build    build given targets
   version  print majak version
+  debug    debug commands
 )";
 
 constexpr const char BUILD_USAGE[] =
@@ -61,6 +65,36 @@ options:
   -n       dry run (don't run commands but act like they succeeded)
   -v       show all command lines while building
 )";
+
+constexpr const char DEBUG_USAGE[] =
+    R"(usage: majak debug <command>
+
+commands:
+  dump-build-log   dump the build log
+)";
+
+using Command = int (*)(const char* working_dir, int argc, char** argv);
+struct CommandEntry {
+  std::string_view name;
+  Command command;
+};
+
+template <size_t N>
+Command ChooseCommand(const CommandEntry (&commands)[N],
+                      const char* command_name) {
+  if (command_name) {
+    auto entry = std::find_if(std::begin(commands), std::end(commands),
+                              [command_name](const CommandEntry& entry) {
+                                return entry.name == command_name;
+                              });
+
+    if (entry != std::end(commands)) {
+      return entry->command;
+    }
+  }
+
+  return nullptr;
+}
 
 int CommandBuild(const char* working_dir, int argc, char** argv) {
   BuildConfig config;
@@ -218,27 +252,136 @@ int CommandVersion(const char* = nullptr, int = 0, char** = nullptr) {
   return 0;
 }
 
-using Command = int (*)(const char* working_dir, int argc, char** argv);
+int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
+  if (working_dir && chdir(working_dir) < 0) {
+    Fatal("chdir to '%s' - %s", working_dir, strerror(errno));
+  }
 
-Command ChooseCommand(const char* command_name) {
-  using CommandEntry = std::pair<const char*, Command>;
-  static constexpr CommandEntry commands[] = {
-    { "build", CommandBuild },
-    { "version", CommandVersion },
-  };
+  std::string log_path = BuildLog::kFilename;
 
-  if (command_name) {
-    auto command = std::find_if(begin(commands), end(commands),
-                                [command_name](const CommandEntry& entry) {
-                                  return strcmp(entry.first, command_name) == 0;
-                                });
+  {
+    State state;
+    RealDiskInterface disk_interface;
+    ManifestParserOptions parser_opts;
+    parser_opts.dupe_edge_action_ = kDupeEdgeActionError;
+    parser_opts.phony_cycle_action_ = kPhonyCycleActionError;
+    ManifestParser parser(&state, &disk_interface, parser_opts);
 
-    if (command != std::end(commands)) {
-      return command->second;
+    std::string err;
+    if (!parser.Load(kInputFile, &err)) {
+      Error("loading manifest failed: %s", err.c_str());
+      exit(1);
+    }
+
+    std::string build_dir = state.bindings_.LookupVariable("builddir");
+    if (!build_dir.empty())
+      log_path = build_dir + "/" + log_path;
+  }
+
+  FILE* file = fopen(log_path.c_str(), "rb");
+  if (!file) {
+    if (errno == ENOENT) {
+      std::cout << "<missing>" << std::endl;
+      return 0;
+    }
+    Error("failed to open build log: %s", strerror(errno));
+    return 1;
+  }
+
+  int log_version = 0;
+  size_t signature_length = std::snprintf(nullptr, 0, BuildLog::kFileSignature,
+                                          BuildLog::kCurrentVersion);
+  std::string signature(signature_length, '\x00');
+
+  if (fread(signature.data(), 1, signature.size(), file) != signature_length ||
+      sscanf(signature.data(), BuildLog::kFileSignature, &log_version) != 1 ||
+      log_version < BuildLog::kOldestSupportedVersion ||
+      log_version > BuildLog::kCurrentVersion) {
+    Error("build log version invalid");
+    return 1;
+  }
+
+  flatbuffers::IDLOptions idl_options;
+  idl_options.strict_json = true;
+  idl_options.indent_step = -1;
+  flatbuffers::Parser parser(idl_options);
+
+  if (!parser.Parse(BuildLog::kSchema)) {
+    Fatal("invalid schema");
+  }
+
+  if (!parser.SetRootType("BuildLogEntry")) {
+  }
+
+  std::string output;
+  uint8_t size_buffer[sizeof(flatbuffers::uoffset_t)];
+  std::vector<uint8_t> entry_buffer;
+
+  for (;;) {
+    if (fread(size_buffer, 1, sizeof(size_buffer), file) !=
+        sizeof(size_buffer)) {
+      break;
+    }
+
+    size_t entry_size = flatbuffers::GetPrefixedSize(size_buffer);
+
+    entry_buffer.resize(std::max(entry_buffer.size(), entry_size));
+
+    if (fread(entry_buffer.data(), 1, entry_size, file) != entry_size) {
+      break;
+    }
+
+    if (flatbuffers::GenerateText(parser, entry_buffer.data(), &output)) {
+      std::cout << output << std::endl;
+    } else {
+      Fatal("failed to serialize entry");
+    }
+    output.clear();
+  }
+
+  return 0;
+}
+
+int CommandDebug(const char* working_dir, int argc, char** argv) {
+  optind = 1;
+  int opt;
+
+  constexpr option kLongOptions[] = { { "help", no_argument, nullptr, 'h' },
+                                      { nullptr, 0, nullptr, 0 } };
+
+  while ((opt = getopt_long(argc, argv, "+h", kLongOptions, nullptr)) != -1) {
+    switch (opt) {
+    case 'h':
+    default:
+      fputs(DEBUG_USAGE, stderr);
+      exit(opt == 'h');
     }
   }
 
-  return nullptr;
+  argv += optind;
+  argc -= optind;
+
+  if (argc == 0) {
+    fputs(DEBUG_USAGE, stderr);
+    exit(0);
+  }
+
+  static constexpr CommandEntry commands[] = {
+    { "dump-build-log", CommandDebugDumpBuildLog },
+  };
+
+  if (auto command = ChooseCommand(commands, *argv)) {
+    exit(command(working_dir, argc, argv));
+  } else {
+    fprintf(
+        stderr,
+        "majak: '%s' is not a majak debug command.  See 'majak debug -h'.\n",
+        *argv);
+    exit(1);
+  }
+
+  exit(0);
+  return 0;
 }
 
 [[noreturn]] void real_main(int argc, char** argv) {
@@ -275,7 +418,13 @@ Command ChooseCommand(const char* command_name) {
     exit(0);
   }
 
-  if (auto command = ChooseCommand(*argv)) {
+  static constexpr CommandEntry commands[] = {
+    { "build", CommandBuild },
+    { "version", CommandVersion },
+    { "debug", CommandDebug },
+  };
+
+  if (auto command = ChooseCommand(commands, *argv)) {
     exit(command(working_dir, argc, argv));
   } else {
     fprintf(stderr, "majak: '%s' is not a majak command.  See 'majak -h'.\n",

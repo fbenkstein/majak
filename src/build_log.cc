@@ -38,6 +38,8 @@
 #include "metrics.h"
 #include "util.h"
 
+#include "build_log_schema.h"
+
 // Implementation details:
 // Each run's log appends to the log file.
 // To load, we run through all log entries in series, throwing away
@@ -46,10 +48,6 @@
 // out a new file and replace the existing one with it.
 
 namespace {
-
-constexpr char kFileSignature[] = "# majak log v1.%03d\n";
-constexpr int kCurrentVersion = 1;
-constexpr int kOldestSupportedVersion = 1;
 
 // 64bit MurmurHash2, by Austin Appleby
 #if defined(_MSC_VER)
@@ -101,6 +99,12 @@ inline uint64_t MurmurHash64A(const void* key, size_t len) {
 }  // namespace
 
 // static
+const char* const BuildLog::kFileSignature = "# majak log v1.%03d\n";
+const int BuildLog::kCurrentVersion = 1;
+const int BuildLog::kOldestSupportedVersion = 1;
+const char* const BuildLog::kFilename = ".ninja_log";
+const char* const BuildLog::kSchema = kBuildLogSchema;
+
 uint64_t BuildLog::LogEntry::HashCommand(std::string_view command) {
   return MurmurHash64A(command.data(), command.size());
 }

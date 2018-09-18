@@ -293,6 +293,24 @@ if (PYTHONINTERP_FOUND AND NOT WIN32)
     )
 endif()
 
+add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
+    DEPENDS src/build_log.fbs cmake/inline.cmake
+    COMMAND
+        "${CMAKE_COMMAND}"
+        -DINPUT=src/build_log.fbs
+        -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
+        -DVARNAME=kBuildLogSchema
+        -P cmake/inline.cmake
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "[inline] src/build_log.fbs"
+)
+set_property(
+    SOURCE src/build_log.cc
+    PROPERTY
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
+)
+
 set_package_properties(PythonInterp PROPERTIES
     TYPE OPTIONAL
     DESCRIPTION "Python language intereter."
