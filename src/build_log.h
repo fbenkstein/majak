@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <string>
 
+#include <flatbuffers/flatbuffers.h>
+
 #include "hash_map.h"
 #include "timestamp.h"
 #include "util.h"  // uint64_t
@@ -89,6 +91,7 @@ struct BuildLog {
   Entries entries_;
   FILE* log_file_;
   bool needs_recompaction_;
+  flatbuffers::FlatBufferBuilder fbb_;
 };
 
 #endif  // NINJA_BUILD_LOG_H_

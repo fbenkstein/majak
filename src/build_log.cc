@@ -21,6 +21,7 @@
 #endif
 
 #include "build_log.h"
+#include "build_log_generated.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -32,6 +33,7 @@
 #endif
 
 #include "build.h"
+#include "filesystem.h"
 #include "graph.h"
 #include "metrics.h"
 #include "util.h"
@@ -45,9 +47,9 @@
 
 namespace {
 
-const char kFileSignature[] = "# ninja log v%d\n";
-const int kOldestSupportedVersion = 4;
-const int kCurrentVersion = 5;
+constexpr char kFileSignature[] = "# majak log v1.%03d\n";
+constexpr int kCurrentVersion = 1;
+constexpr int kOldestSupportedVersion = 1;
 
 // 64bit MurmurHash2, by Austin Appleby
 #if defined(_MSC_VER)
@@ -183,60 +185,9 @@ void BuildLog::Close() {
   log_file_ = nullptr;
 }
 
-struct LineReader {
-  explicit LineReader(FILE* file)
-      : file_(file), buf_end_(buf_), line_start_(buf_), line_end_(nullptr) {
-    memset(buf_, 0, sizeof(buf_));
-  }
-
-  // Reads a \n-terminated line from the file passed to the constructor.
-  // On return, *line_start points to the beginning of the next line, and
-  // *line_end points to the \n at the end of the line. If no newline is seen
-  // in a fixed buffer size, *line_end is set to nullptr. Returns false on EOF.
-  bool ReadLine(char** line_start, char** line_end) {
-    if (line_start_ >= buf_end_ || !line_end_) {
-      // Buffer empty, refill.
-      size_t size_read = fread(buf_, 1, sizeof(buf_), file_);
-      if (!size_read)
-        return false;
-      line_start_ = buf_;
-      buf_end_ = buf_ + size_read;
-    } else {
-      // Advance to next line in buffer.
-      line_start_ = line_end_ + 1;
-    }
-
-    line_end_ = (char*)memchr(line_start_, '\n', buf_end_ - line_start_);
-    if (!line_end_) {
-      // No newline. Move rest of data to start of buffer, fill rest.
-      size_t already_consumed = line_start_ - buf_;
-      size_t size_rest = (buf_end_ - buf_) - already_consumed;
-      memmove(buf_, line_start_, size_rest);
-
-      size_t read = fread(buf_ + size_rest, 1, sizeof(buf_) - size_rest, file_);
-      buf_end_ = buf_ + size_rest + read;
-      line_start_ = buf_;
-      line_end_ = (char*)memchr(line_start_, '\n', buf_end_ - line_start_);
-    }
-
-    *line_start = line_start_;
-    *line_end = line_end_;
-    return true;
-  }
-
- private:
-  FILE* file_;
-  char buf_[256 << 10];
-  char* buf_end_;  // Points one past the last valid byte in |buf_|.
-
-  char* line_start_;
-  // Points at the next \n in buf_ after line_start, or nullptr.
-  char* line_end_;
-};
-
 bool BuildLog::Load(const std::string& path, std::string* err) {
   METRIC_RECORD(".ninja_log load");
-  FILE* file = fopen(path.c_str(), "r");
+  FILE* file = fopen(path.c_str(), "rb");
   if (!file) {
     if (errno == ENOENT)
       return true;
@@ -245,97 +196,75 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
   }
 
   int log_version = 0;
+  size_t signature_length =
+      std::snprintf(nullptr, 0, kFileSignature, kCurrentVersion);
+  std::string signature(signature_length, '\x00');
+
+  if (fread(signature.data(), 1, signature.size(), file) != signature_length ||
+      sscanf(signature.data(), kFileSignature, &log_version) != 1 ||
+      log_version < kOldestSupportedVersion || log_version > kCurrentVersion) {
+    *err =
+        ("build log version invalid, perhaps due to being too old; "
+         "starting over");
+    fclose(file);
+    ninja::error_code ec;
+    ninja::fs::remove(path, ec);
+    if (ec) {
+      *err = "failed to remove invalid build log: " + ec.message();
+      return false;
+    }
+    // Don't report this as a failure.  An empty build log will cause
+    // us to rebuild the outputs anyway.
+    return true;
+  }
+
   int unique_entry_count = 0;
   int total_entry_count = 0;
 
-  LineReader reader(file);
-  char* line_start = 0;
-  char* line_end = 0;
-  while (reader.ReadLine(&line_start, &line_end)) {
-    if (!log_version) {
-      sscanf(line_start, kFileSignature, &log_version);
+  uint8_t size_buffer[sizeof(flatbuffers::uoffset_t)];
+  std::vector<uint8_t> entry_buffer;
 
-      if (log_version < kOldestSupportedVersion) {
-        *err =
-            ("build log version invalid, perhaps due to being too old; "
-             "starting over");
-        fclose(file);
-        unlink(path.c_str());
-        // Don't report this as a failure.  An empty build log will cause
-        // us to rebuild the outputs anyway.
-        return true;
-      }
+  for (;;) {
+    if (fread(size_buffer, 1, sizeof(size_buffer), file) != sizeof(size_buffer)) {
+        break;
     }
 
-    // If no newline was found in this chunk, read the next.
-    if (!line_end)
-      continue;
+    size_t entry_size = flatbuffers::GetPrefixedSize(size_buffer);
 
-    const char kFieldSeparator = '\t';
+    entry_buffer.resize(std::max(entry_buffer.size(), entry_size));
 
-    char* start = line_start;
-    char* end = (char*)memchr(start, kFieldSeparator, line_end - start);
-    if (!end)
-      continue;
-    *end = 0;
+    if (fread(entry_buffer.data(), 1, entry_size, file) != entry_size) {
+      break;
+    }
 
-    int start_time = 0, end_time = 0;
-    TimeStamp restat_mtime = 0;
+    auto* entry =
+        flatbuffers::GetRoot<ninja::BuildLogEntry>(entry_buffer.data());
 
-    start_time = atoi(start);
-    start = end + 1;
+    if (!entry->output()) {
+      break;
+    }
 
-    end = (char*)memchr(start, kFieldSeparator, line_end - start);
-    if (!end)
-      continue;
-    *end = 0;
-    end_time = atoi(start);
-    start = end + 1;
+    std::string_view output(entry->output()->c_str(),
+                            entry->output()->Length());
 
-    end = (char*)memchr(start, kFieldSeparator, line_end - start);
-    if (!end)
-      continue;
-    *end = 0;
-    restat_mtime = strtoll(start, nullptr, 10);
-    start = end + 1;
-
-    end = (char*)memchr(start, kFieldSeparator, line_end - start);
-    if (!end)
-      continue;
-    std::string output = std::string(start, end - start);
-
-    start = end + 1;
-    end = line_end;
-
-    LogEntry* entry;
     Entries::iterator i = entries_.find(output);
+    LogEntry* log_entry;
+
     if (i != entries_.end()) {
-      entry = i->second;
+      log_entry = i->second;
     } else {
-      entry = new LogEntry(output);
-      entries_.insert(Entries::value_type(entry->output, entry));
+      log_entry = new LogEntry(std::string(output));
+      entries_.insert(Entries::value_type(log_entry->output, log_entry));
       ++unique_entry_count;
     }
     ++total_entry_count;
 
-    entry->start_time = start_time;
-    entry->end_time = end_time;
-    entry->mtime = restat_mtime;
-    if (log_version >= 5) {
-      char c = *end;
-      *end = '\0';
-      entry->command_hash = (uint64_t)strtoull(start, nullptr, 16);
-      *end = c;
-    } else {
-      entry->command_hash =
-          LogEntry::HashCommand(std::string_view(start, end - start));
-    }
+    log_entry->start_time = entry->start_time();
+    log_entry->end_time = entry->end_time();
+    log_entry->mtime = entry->mtime();
+    log_entry->command_hash = entry->command_hash();
   }
   fclose(file);
-
-  if (!line_start) {
-    return true;  // file was empty
-  }
 
   // Decide whether it's time to rebuild the log:
   // - if we're upgrading versions
@@ -360,9 +289,13 @@ BuildLog::LogEntry* BuildLog::LookupByOutput(const std::string& path) {
 }
 
 bool BuildLog::WriteEntry(FILE* f, const LogEntry& entry) {
-  return fprintf(f, "%d\t%d\t%" PRId64 "\t%s\t%" PRIx64 "\n", entry.start_time,
-                 entry.end_time, entry.mtime, entry.output.c_str(),
-                 entry.command_hash) > 0;
+  fbb_.Clear();
+  auto offset = ninja::CreateBuildLogEntryDirect(
+      fbb_, entry.output.c_str(), entry.command_hash, entry.start_time,
+      entry.end_time, entry.mtime);
+  fbb_.FinishSizePrefixed(offset);
+  return fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), f) ==
+         fbb_.GetSize();
 }
 
 bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,

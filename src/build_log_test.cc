@@ -75,8 +75,7 @@ TEST_F(BuildLogTest, WriteRead) {
 }
 
 TEST_F(BuildLogTest, FirstWriteAddsSignature) {
-  const char kExpectedVersion[] = "# ninja log vX\n";
-  const size_t kVersionPos = strlen(kExpectedVersion) - 2;  // Points at 'X'.
+  const std::string kExpectedSignature = "# majak log v";
 
   BuildLog log;
   std::string contents, err;
@@ -87,9 +86,9 @@ TEST_F(BuildLogTest, FirstWriteAddsSignature) {
 
   ASSERT_EQ(0, ReadFile(kTestFilename, &contents, &err));
   ASSERT_EQ("", err);
-  if (contents.size() >= kVersionPos)
-    contents[kVersionPos] = 'X';
-  EXPECT_EQ(kExpectedVersion, contents);
+  ASSERT_LT(kExpectedSignature.size(), contents.size());
+  EXPECT_EQ(kExpectedSignature, contents.substr(0, kExpectedSignature.size()));
+  EXPECT_EQ('\n', contents.back());
 
   // Opening the file anew shouldn't add a second version string.
   EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
@@ -99,19 +98,27 @@ TEST_F(BuildLogTest, FirstWriteAddsSignature) {
   contents.clear();
   ASSERT_EQ(0, ReadFile(kTestFilename, &contents, &err));
   ASSERT_EQ("", err);
-  if (contents.size() >= kVersionPos)
-    contents[kVersionPos] = 'X';
-  EXPECT_EQ(kExpectedVersion, contents);
+  ASSERT_LT(kExpectedSignature.size(), contents.size());
+  EXPECT_EQ(kExpectedSignature, contents.substr(0, kExpectedSignature.size()));
+  EXPECT_EQ('\n', contents.back());
 }
 
 TEST_F(BuildLogTest, DoubleEntry) {
-  FILE* f = fopen(kTestFilename, "wb");
-  fprintf(f, "# ninja log v4\n");
-  fprintf(f, "0\t1\t2\tout\tcommand abc\n");
-  fprintf(f, "3\t4\t5\tout\tcommand def\n");
-  fclose(f);
-
   std::string err;
+  {
+    BuildLog log;
+    EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
+    log.Close();
+    FILE* f = fopen(kTestFilename, "ab");
+    log.WriteEntry(
+        f, BuildLog::LogEntry(
+               "out", BuildLog::LogEntry::HashCommand("command abc"), 0, 1, 2));
+    log.WriteEntry(
+        f, BuildLog::LogEntry(
+               "out", BuildLog::LogEntry::HashCommand("command def"), 3, 4, 5));
+    fclose(f);
+  }
+
   BuildLog log;
   EXPECT_TRUE(log.Load(kTestFilename, &err));
   ASSERT_EQ("", err);
@@ -161,33 +168,14 @@ TEST_F(BuildLogTest, Truncate) {
 
 TEST_F(BuildLogTest, ObsoleteOldVersion) {
   FILE* f = fopen(kTestFilename, "wb");
-  fprintf(f, "# ninja log v3\n");
-  fprintf(f, "123 456 0 out command\n");
+  fprintf(f, "# ninja log v5\n");
+  fprintf(f, "123\t456\t0\tout\t789\n");
   fclose(f);
 
   std::string err;
   BuildLog log;
   EXPECT_TRUE(log.Load(kTestFilename, &err));
   ASSERT_NE(err.find("version"), std::string::npos);
-}
-
-TEST_F(BuildLogTest, SpacesInOutputV4) {
-  FILE* f = fopen(kTestFilename, "wb");
-  fprintf(f, "# ninja log v4\n");
-  fprintf(f, "123\t456\t456\tout with space\tcommand\n");
-  fclose(f);
-
-  std::string err;
-  BuildLog log;
-  EXPECT_TRUE(log.Load(kTestFilename, &err));
-  ASSERT_EQ("", err);
-
-  BuildLog::LogEntry* e = log.LookupByOutput("out with space");
-  ASSERT_TRUE(e);
-  ASSERT_EQ(123, e->start_time);
-  ASSERT_EQ(456, e->end_time);
-  ASSERT_EQ(456, e->mtime);
-  ASSERT_NO_FATAL_FAILURE(AssertHash("command", e->command_hash));
 }
 
 TEST_F(BuildLogTest, DuplicateVersionHeader) {
@@ -204,49 +192,8 @@ TEST_F(BuildLogTest, DuplicateVersionHeader) {
   std::string err;
   BuildLog log;
   EXPECT_TRUE(log.Load(kTestFilename, &err));
-  ASSERT_EQ("", err);
-
-  BuildLog::LogEntry* e = log.LookupByOutput("out");
-  ASSERT_TRUE(e);
-  ASSERT_EQ(123, e->start_time);
-  ASSERT_EQ(456, e->end_time);
-  ASSERT_EQ(456, e->mtime);
-  ASSERT_NO_FATAL_FAILURE(AssertHash("command", e->command_hash));
-
-  e = log.LookupByOutput("out2");
-  ASSERT_TRUE(e);
-  ASSERT_EQ(456, e->start_time);
-  ASSERT_EQ(789, e->end_time);
-  ASSERT_EQ(789, e->mtime);
-  ASSERT_NO_FATAL_FAILURE(AssertHash("command2", e->command_hash));
-}
-
-TEST_F(BuildLogTest, VeryLongInputLine) {
-  // Ninja's build log buffer is currently 256kB. Lines longer than that are
-  // silently ignored, but don't affect parsing of other lines.
-  FILE* f = fopen(kTestFilename, "wb");
-  fprintf(f, "# ninja log v4\n");
-  fprintf(f, "123\t456\t456\tout\tcommand start");
-  for (size_t i = 0; i < (512 << 10) / strlen(" more_command"); ++i)
-    fputs(" more_command", f);
-  fprintf(f, "\n");
-  fprintf(f, "456\t789\t789\tout2\tcommand2\n");
-  fclose(f);
-
-  std::string err;
-  BuildLog log;
-  EXPECT_TRUE(log.Load(kTestFilename, &err));
-  ASSERT_EQ("", err);
-
-  BuildLog::LogEntry* e = log.LookupByOutput("out");
-  ASSERT_EQ(nullptr, e);
-
-  e = log.LookupByOutput("out2");
-  ASSERT_TRUE(e);
-  ASSERT_EQ(456, e->start_time);
-  ASSERT_EQ(789, e->end_time);
-  ASSERT_EQ(789, e->mtime);
-  ASSERT_NO_FATAL_FAILURE(AssertHash("command2", e->command_hash));
+  EXPECT_NE(err.find("version"), std::string::npos);
+  EXPECT_FALSE(fs::exists(kTestFilename));
 }
 
 TEST_F(BuildLogTest, MultiTargetEdge) {

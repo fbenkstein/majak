@@ -310,7 +310,7 @@ target_compile_definitions(
     PUBLIC ${ninja_compile_definitions}
     PRIVATE ${ninja_private_compile_definitions}
 )
-target_include_directories(libninja PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(libninja PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" ext/flatbuffers/include)
 target_link_libraries(libninja PUBLIC flatbuffers "${NINJA_FILESYSTEM_LIBRARY}")
 
 add_executable(ninja src/ninja_main.cc)
