@@ -25,13 +25,12 @@
 namespace ninja {
 namespace fs = NINJA_FILESYSTEM_NAMESPACE;
 
-
 template <class T, class U>
-auto __get_error_code_type_helper(T(*f)(U&))
-{
-    return U{};
+auto __get_error_code_type_helper(T (*f)(U&)) {
+  return U{};
 }
-using error_code = decltype(__get_error_code_type_helper(&fs::temp_directory_path));
-}
+using error_code =
+    decltype(__get_error_code_type_helper(&fs::temp_directory_path));
+}  // namespace ninja
 
-#endif // NINJA_FILESYSTEM_H_
+#endif  // NINJA_FILESYSTEM_H_

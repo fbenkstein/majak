@@ -27,7 +27,8 @@ namespace fs = ninja::fs;
 namespace {
 
 constexpr const char* kPaths[] = {
-  "../../third_party/WebKit/Source/WebCore/platform/leveldb/LevelDBWriteBatch.cpp",
+  "../../third_party/WebKit/Source/WebCore/platform/leveldb/"
+  "LevelDBWriteBatch.cpp",
   "/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu",
 };
 
@@ -101,7 +102,7 @@ BENCHMARK(BM_StringToPath)->UseManualTime();
 
 static void BM_PathToPath(benchmark::State& state) {
   for (auto _ : state) {
-      fs::path s(kPaths[0]);
+    fs::path s(kPaths[0]);
     auto start = now();
     fs::path p(std::move(s));
     benchmark::DoNotOptimize(p);

@@ -14,9 +14,11 @@
 
 #pragma once
 
+// clang-format off
 #cmakedefine NINJA_HAVE_GETOPT
 #cmakedefine NINJA_USE_PPOLL
 #cmakedefine NINJA_HAVE_BROWSE
 #cmakedefine NINJA_PYTHON "@NINJA_PYTHON@"
 #cmakedefine NINJA_FILESYSTEM_INCLUDE @NINJA_FILESYSTEM_INCLUDE@
 #cmakedefine NINJA_FILESYSTEM_NAMESPACE @NINJA_FILESYSTEM_NAMESPACE@
+// clang-format on
