@@ -305,15 +305,28 @@ add_custom_command(
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "[inline] src/build_log.fbs"
 )
+add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build_log_generated.h"
+    DEPENDS src/build_log.fbs
+    COMMAND
+        flatc
+        --cpp
+        -o ${CMAKE_CURRENT_BINARY_DIR}
+        --gen-object-api
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/build_log.fbs
+    COMMENT "[flatc] src/build_log.fbs"
+)
 set_property(
     SOURCE src/build_log.cc
     PROPERTY
-    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
+    OBJECT_DEPENDS
+        "${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
+        "${CMAKE_CURRENT_BINARY_DIR}/build_log_generated.h"
 )
 
 set_package_properties(PythonInterp PROPERTIES
     TYPE OPTIONAL
-    DESCRIPTION "Python language intereter."
+    DESCRIPTION "Python language interpreter."
     PURPOSE "Enables manifest browser."
 )
 
