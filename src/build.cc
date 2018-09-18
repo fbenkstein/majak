@@ -207,13 +207,13 @@ std::string BuildStatus::FormatProgressStatus(
 
         // Started edges.
       case 's':
-        snprintf(buf, sizeof(buf), "%d", started_edges_);
+        std::snprintf(buf, sizeof(buf), "%d", started_edges_);
         out += buf;
         break;
 
         // Total edges.
       case 't':
-        snprintf(buf, sizeof(buf), "%d", total_edges_);
+        std::snprintf(buf, sizeof(buf), "%d", total_edges_);
         out += buf;
         break;
 
@@ -223,20 +223,20 @@ std::string BuildStatus::FormatProgressStatus(
         // count the edge that just finished as a running edge
         if (status == kEdgeFinished)
           running_edges++;
-        snprintf(buf, sizeof(buf), "%d", running_edges);
+        std::snprintf(buf, sizeof(buf), "%d", running_edges);
         out += buf;
         break;
       }
 
         // Unstarted edges.
       case 'u':
-        snprintf(buf, sizeof(buf), "%d", total_edges_ - started_edges_);
+        std::snprintf(buf, sizeof(buf), "%d", total_edges_ - started_edges_);
         out += buf;
         break;
 
         // Finished edges.
       case 'f':
-        snprintf(buf, sizeof(buf), "%d", finished_edges_);
+        std::snprintf(buf, sizeof(buf), "%d", finished_edges_);
         out += buf;
         break;
 
@@ -257,13 +257,13 @@ std::string BuildStatus::FormatProgressStatus(
         // Percentage
       case 'p':
         percent = (100 * finished_edges_) / total_edges_;
-        snprintf(buf, sizeof(buf), "%3i%%", percent);
+        std::snprintf(buf, sizeof(buf), "%3i%%", percent);
         out += buf;
         break;
 
       case 'e': {
         double elapsed = overall_rate_.Elapsed();
-        snprintf(buf, sizeof(buf), "%.3f", elapsed);
+        std::snprintf(buf, sizeof(buf), "%.3f", elapsed);
         out += buf;
         break;
       }

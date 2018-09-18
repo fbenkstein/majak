@@ -247,9 +247,9 @@ struct BuildStatus {
   template <size_t S>
   void SnprintfRate(double rate, char (&buf)[S], const char* format) const {
     if (rate == -1)
-      snprintf(buf, S, "?");
+      std::snprintf(buf, S, "?");
     else
-      snprintf(buf, S, format, rate);
+      std::snprintf(buf, S, format, rate);
   }
 
   struct RateInfo {

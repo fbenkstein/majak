@@ -15,7 +15,7 @@
 
 #include "lexer.h"
 
-#include <stdio.h>
+#include <cstdio>
 
 #include "eval_env.h"
 #include "util.h"
@@ -33,7 +33,8 @@ bool Lexer::Error(const std::string& message, std::string* err) {
   int col = last_token_ ? (int)(last_token_ - line_start) : 0;
 
   char buf[1024];
-  snprintf(buf, sizeof(buf), "%s:%d: ", std::string(filename_).c_str(), line);
+  std::snprintf(buf, sizeof(buf), "%s:%d: ", std::string(filename_).c_str(),
+                line);
   *err = buf;
   *err += message + "\n";
 

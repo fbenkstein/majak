@@ -225,8 +225,9 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
   std::vector<uint8_t> entry_buffer;
 
   for (;;) {
-    if (fread(size_buffer, 1, sizeof(size_buffer), file) != sizeof(size_buffer)) {
-        break;
+    if (fread(size_buffer, 1, sizeof(size_buffer), file) !=
+        sizeof(size_buffer)) {
+      break;
     }
 
     size_t entry_size = flatbuffers::GetPrefixedSize(size_buffer);
