@@ -105,17 +105,9 @@ const int BuildLog::kOldestSupportedVersion = 1;
 const char* const BuildLog::kFilename = ".ninja_log";
 const char* const BuildLog::kSchema = kBuildLogSchema;
 
-uint64_t BuildLog::LogEntry::HashCommand(std::string_view command) {
+uint64_t BuildLog::HashCommand(std::string_view command) {
   return MurmurHash64A(command.data(), command.size());
 }
-
-BuildLog::LogEntry::LogEntry(const std::string& output) : output(output) {}
-
-BuildLog::LogEntry::LogEntry(const std::string& output, uint64_t command_hash,
-                             int start_time, int end_time,
-                             TimeStamp restat_mtime)
-    : output(output), command_hash(command_hash), start_time(start_time),
-      end_time(end_time), mtime(restat_mtime) {}
 
 BuildLog::BuildLog() : log_file_(nullptr), needs_recompaction_(false) {}
 
@@ -155,7 +147,7 @@ bool BuildLog::OpenForWrite(const std::string& path, const BuildLogUser& user,
 bool BuildLog::RecordCommand(Edge* edge, int start_time, int end_time,
                              TimeStamp mtime) {
   std::string command = edge->EvaluateCommand(true);
-  uint64_t command_hash = LogEntry::HashCommand(command);
+  uint64_t command_hash = HashCommand(command);
   for (std::vector<Node*>::iterator out = edge->outputs_.begin();
        out != edge->outputs_.end(); ++out) {
     const std::string& path = (*out)->path();
@@ -164,7 +156,8 @@ bool BuildLog::RecordCommand(Edge* edge, int start_time, int end_time,
     if (i != entries_.end()) {
       log_entry = i->second;
     } else {
-      log_entry = new LogEntry(path);
+      log_entry = new LogEntry;
+      log_entry->output = path;
       entries_.insert(Entries::value_type(log_entry->output, log_entry));
     }
     log_entry->command_hash = command_hash;
@@ -258,7 +251,8 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
     if (i != entries_.end()) {
       log_entry = i->second;
     } else {
-      log_entry = new LogEntry(std::string(output));
+      log_entry = new LogEntry;
+      log_entry->output = output;
       entries_.insert(Entries::value_type(log_entry->output, log_entry));
       ++unique_entry_count;
     }
@@ -295,9 +289,7 @@ BuildLog::LogEntry* BuildLog::LookupByOutput(const std::string& path) {
 
 bool BuildLog::WriteEntry(FILE* f, const LogEntry& entry) {
   fbb_.Clear();
-  auto offset = ninja::CreateBuildLogEntryDirect(
-      fbb_, entry.output.c_str(), entry.command_hash, entry.start_time,
-      entry.end_time, entry.mtime);
+  auto offset = ninja::CreateBuildLogEntry(fbb_, &entry);
   fbb_.FinishSizePrefixed(offset);
   return fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), f) ==
          fbb_.GetSize();
@@ -351,3 +343,17 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
 
   return true;
 }
+
+namespace ninja {
+bool operator==(const BuildLogEntryT& e1, const BuildLogEntryT& e2) {
+  auto to_tuple = [](const BuildLogEntryT& e) {
+    return std::tie(e.output, e.command_hash, e.start_time, e.end_time,
+                    e.mtime);
+  };
+  return to_tuple(e1) == to_tuple(e2);
+}
+
+bool operator!=(const BuildLogEntryT& e1, const BuildLogEntryT& e2) {
+  return !(e1 == e2);
+}
+}  // namespace ninja

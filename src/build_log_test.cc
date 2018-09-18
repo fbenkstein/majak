@@ -103,6 +103,20 @@ TEST_F(BuildLogTest, FirstWriteAddsSignature) {
   EXPECT_EQ('\n', contents.back());
 }
 
+namespace {
+BuildLog::LogEntry LogEntry(std::string output, uint64_t command_hash,
+                            uint32_t start_time, uint32_t end_time,
+                            uint64_t mtime) {
+  BuildLog::LogEntry e;
+  e.output = std::move(output);
+  e.command_hash = command_hash;
+  e.start_time = start_time;
+  e.end_time = end_time;
+  e.mtime = mtime;
+  return e;
+}
+}  // anonymous namespace
+
 TEST_F(BuildLogTest, DoubleEntry) {
   std::string err;
   {
@@ -111,11 +125,9 @@ TEST_F(BuildLogTest, DoubleEntry) {
     log.Close();
     FILE* f = fopen(kTestFilename, "ab");
     log.WriteEntry(
-        f, BuildLog::LogEntry(
-               "out", BuildLog::LogEntry::HashCommand("command abc"), 0, 1, 2));
+        f, LogEntry("out", BuildLog::HashCommand("command abc"), 0, 1, 2));
     log.WriteEntry(
-        f, BuildLog::LogEntry(
-               "out", BuildLog::LogEntry::HashCommand("command def"), 3, 4, 5));
+        f, LogEntry("out", BuildLog::HashCommand("command def"), 3, 4, 5));
     fclose(f);
   }
 

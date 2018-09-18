@@ -41,7 +41,7 @@ int main() {
 
   for (int i = 0; i < N; ++i) {
     RandomCommand(&commands[i]);
-    hashes[i] = std::make_pair(BuildLog::LogEntry::HashCommand(commands[i]), i);
+    hashes[i] = std::make_pair(BuildLog::HashCommand(commands[i]), i);
   }
 
   sort(hashes, hashes + N);

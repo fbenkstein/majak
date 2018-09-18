@@ -41,6 +41,8 @@
 #include "util.h"
 #include "version.h"
 
+using namespace ninja;
+
 namespace {
 constexpr const char kInputFile[] = "build.ninja";
 

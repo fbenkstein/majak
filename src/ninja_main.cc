@@ -34,6 +34,8 @@
 #include "ninja.h"
 #include "version.h"
 
+using namespace ninja;
+
 namespace {
 /// Print usage information.
 void Usage(const BuildConfig& config) {

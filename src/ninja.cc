@@ -48,7 +48,7 @@
 #include "util.h"
 #include "version.h"
 
-inline namespace ninja {
+namespace ninja {
 bool NinjaMain::IsPathDead(std::string_view s) const {
   Node* n = state_.LookupNode(s);
   if (!n || !n->in_edge())

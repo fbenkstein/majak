@@ -28,7 +28,7 @@ int MSVCHelperMain(int argc, char** argv);
 void CreateWin32MiniDump(_EXCEPTION_POINTERS* pep);
 #endif
 
-inline namespace ninja {
+namespace ninja {
 struct Tool;
 
 /// Command-line options.

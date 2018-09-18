@@ -20,6 +20,7 @@
 
 #include <flatbuffers/flatbuffers.h>
 
+#include "build_log_generated.h"
 #include "hash_map.h"
 #include "timestamp.h"
 #include "util.h"  // uint64_t
@@ -59,26 +60,9 @@ struct BuildLog {
   /// Load the on-disk log.
   bool Load(const std::string& path, std::string* err);
 
-  struct LogEntry {
-    std::string output;
-    uint64_t command_hash;
-    int start_time;
-    int end_time;
-    TimeStamp mtime;
+  static uint64_t HashCommand(std::string_view command);
 
-    static uint64_t HashCommand(std::string_view command);
-
-    // Used by tests.
-    bool operator==(const LogEntry& o) {
-      return output == o.output && command_hash == o.command_hash &&
-             start_time == o.start_time && end_time == o.end_time &&
-             mtime == o.mtime;
-    }
-
-    explicit LogEntry(const std::string& output);
-    LogEntry(const std::string& output, uint64_t command_hash, int start_time,
-             int end_time, TimeStamp restat_mtime);
-  };
+  using LogEntry = ninja::BuildLogEntryT;
 
   /// Lookup a previously-run command by its output path.
   LogEntry* LookupByOutput(const std::string& path);
@@ -99,5 +83,11 @@ struct BuildLog {
   bool needs_recompaction_;
   flatbuffers::FlatBufferBuilder fbb_;
 };
+
+namespace ninja
+{
+bool operator==(const BuildLogEntryT& e1, const BuildLogEntryT& e2);
+bool operator!=(const BuildLogEntryT& e1, const BuildLogEntryT& e2);
+}
 
 #endif  // NINJA_BUILD_LOG_H_

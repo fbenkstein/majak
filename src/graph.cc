@@ -247,7 +247,7 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge, Node* most_recent_input,
     bool generator = edge->GetBindingBool("generator");
     if (entry || (entry = build_log()->LookupByOutput(output->path()))) {
       if (!generator &&
-          BuildLog::LogEntry::HashCommand(command) != entry->command_hash) {
+          BuildLog::HashCommand(command) != entry->command_hash) {
         // May also be dirty due to the command changing since the last build.
         // But if this is a generator rule, the command changing does not make
         // us dirty.
