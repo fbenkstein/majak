@@ -26,7 +26,7 @@ cmake ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_MAKE_PROGRAM=%NINJA% .. ^
     || goto FAIL
-cmake --build . -- -v || goto FAIL
+cmake --build . -- -j2 -v || goto FAIL
 ctest --output-on-failure || goto FAIL
 cd .. || goto FAIL
 
