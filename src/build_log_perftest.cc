@@ -112,7 +112,7 @@ bool WriteTestData(std::string* err) {
 
 void BM_BuildLogLoad(benchmark::State& state) {
   std::string err;
-  error_code ec;
+  fs::error_code ec;
   fs::remove(kTestFilename, ec);
 
   if (!WriteTestData(&err)) {

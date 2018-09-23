@@ -611,7 +611,7 @@ std::string ElideMiddle(const std::string& str, size_t width) {
 }
 
 bool Truncate(const std::string& path, size_t size, std::string* err) {
-  error_code ec;
+  fs::error_code ec;
   fs::resize_file(path, size, ec);
 
   if (ec) {
@@ -623,7 +623,7 @@ bool Truncate(const std::string& path, size_t size, std::string* err) {
 }
 
 std::string GetCwd(std::string* err) {
-  error_code ec;
+  fs::error_code ec;
   auto cwd = fs::current_path(ec);
 
   if (ec) {

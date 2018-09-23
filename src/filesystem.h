@@ -22,15 +22,18 @@
 #define NINJA_FILESYSTEM_INCLUDE_ <NINJA_FILESYSTEM_INCLUDE>
 #include NINJA_FILESYSTEM_INCLUDE_
 
-namespace ninja {
-namespace fs = NINJA_FILESYSTEM_NAMESPACE;
+namespace ninja::fs {
+using namespace NINJA_FILESYSTEM_NAMESPACE;
 
+namespace detail {
 template <class T, class U>
 auto __get_error_code_type_helper(T (*f)(U&)) {
   return U{};
 }
+}  // namespace detail
+
 using error_code =
-    decltype(__get_error_code_type_helper(&fs::temp_directory_path));
-}  // namespace ninja
+    decltype(detail::__get_error_code_type_helper(&temp_directory_path));
+}  // namespace ninja::fs
 
 #endif  // NINJA_FILESYSTEM_H_

@@ -32,7 +32,7 @@ const char kTestFilename[] = "DepsLogTest-tempfile";
 
 struct DepsLogTest : public testing::Test {
   void RemoveTestFile() {
-    error_code ignore;
+    fs::error_code ignore;
     fs::remove(kTestFilename, ignore);
   }
   virtual void SetUp() {

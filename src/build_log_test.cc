@@ -35,7 +35,7 @@ const char kTestFilename[] = "BuildLogTest-tempfile";
 
 struct BuildLogTest : public StateTestWithBuiltinRules, public BuildLogUser {
   void RemoveTestFile() {
-    error_code ignore;
+    fs::error_code ignore;
     fs::remove(kTestFilename, ignore);
   }
   virtual void SetUp() {

@@ -206,7 +206,7 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
         ("build log version invalid, perhaps due to being too old; "
          "starting over");
     fclose(file);
-    error_code ec;
+    fs::error_code ec;
     fs::remove(path, ec);
     if (ec) {
       *err = "failed to remove invalid build log: " + ec.message();
