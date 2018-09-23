@@ -22,6 +22,8 @@
 #include "test.h"
 #include "util.h"
 
+using namespace ninja;
+
 namespace {
 
 std::string GetCurDir() {
