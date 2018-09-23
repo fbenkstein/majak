@@ -57,6 +57,8 @@
 #include "edit_distance.h"
 #include "metrics.h"
 
+namespace ninja {
+
 void Fatal(const char* msg, ...) {
   va_list ap;
   fprintf(stderr, "ninja: fatal: ");
@@ -609,8 +611,8 @@ std::string ElideMiddle(const std::string& str, size_t width) {
 }
 
 bool Truncate(const std::string& path, size_t size, std::string* err) {
-  ninja::error_code ec;
-  ninja::fs::resize_file(path, size, ec);
+  error_code ec;
+  fs::resize_file(path, size, ec);
 
   if (ec) {
     *err = ec.message();
@@ -621,8 +623,8 @@ bool Truncate(const std::string& path, size_t size, std::string* err) {
 }
 
 std::string GetCwd(std::string* err) {
-  ninja::error_code ec;
-  auto cwd = ninja::fs::current_path(ec);
+  error_code ec;
+  auto cwd = fs::current_path(ec);
 
   if (ec) {
     *err = ec.message();
@@ -631,3 +633,5 @@ std::string GetCwd(std::string* err) {
 
   return cwd.string();
 }
+
+}  // namespace ninja

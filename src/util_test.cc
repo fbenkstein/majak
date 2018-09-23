@@ -16,6 +16,8 @@
 
 #include "test.h"
 
+using namespace ninja;
+
 namespace {
 
 bool CanonicalizePath(std::string* path, std::string* err) {

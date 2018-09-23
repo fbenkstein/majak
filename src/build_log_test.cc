@@ -27,7 +27,7 @@
 #include <unistd.h>
 #endif
 
-namespace fs = ninja::fs;
+using namespace ninja;
 
 namespace {
 
@@ -35,7 +35,7 @@ const char kTestFilename[] = "BuildLogTest-tempfile";
 
 struct BuildLogTest : public StateTestWithBuiltinRules, public BuildLogUser {
   void RemoveTestFile() {
-    ninja::error_code ignore;
+    error_code ignore;
     fs::remove(kTestFilename, ignore);
   }
   virtual void SetUp() {

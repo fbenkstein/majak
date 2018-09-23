@@ -24,7 +24,7 @@
 #include "manifest_parser.h"
 #include "util.h"
 
-namespace fs = ninja::fs;
+using namespace ninja;
 
 namespace {
 std::string MakeTempDir(std::string_view prefix, std::string* err) {
@@ -41,7 +41,7 @@ std::string MakeTempDir(std::string_view prefix, std::string* err) {
           std::uniform_int_distribution<int>('0', '9')(rd));
     });
 
-    ninja::error_code ec;
+    error_code ec;
 
     if (!fs::exists(name) && fs::create_directory(name, ec)) {
       return name;
@@ -170,7 +170,7 @@ int VirtualFileSystem::RemoveFile(const std::string& path) {
 }
 
 void ScopedTempDir::CreateAndEnter(const std::string& name) {
-  ninja::error_code ec;
+  error_code ec;
 
   // First change into the system temp dir and save it for cleanup.
   start_dir_ = fs::temp_directory_path(ec);
@@ -199,7 +199,7 @@ void ScopedTempDir::Cleanup() {
     return;  // Something went wrong earlier.
 
   // Move out of the directory we're about to clobber.
-  ninja::error_code ec;
+  error_code ec;
   fs::current_path(start_dir_, ec);
   if (ec)
     Fatal("chdir: %s", ec.message().c_str());

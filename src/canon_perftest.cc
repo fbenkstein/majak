@@ -22,7 +22,7 @@
 #include "metrics.h"
 #include "util.h"
 
-namespace fs = ninja::fs;
+using namespace ninja;
 
 namespace {
 

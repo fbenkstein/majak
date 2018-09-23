@@ -40,6 +40,8 @@
 
 #include "build_log_schema.h"
 
+using namespace ninja;
+
 // Implementation details:
 // Each run's log appends to the log file.
 // To load, we run through all log entries in series, throwing away
@@ -204,8 +206,8 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
         ("build log version invalid, perhaps due to being too old; "
          "starting over");
     fclose(file);
-    ninja::error_code ec;
-    ninja::fs::remove(path, ec);
+    error_code ec;
+    fs::remove(path, ec);
     if (ec) {
       *err = "failed to remove invalid build log: " + ec.message();
       return false;
@@ -235,8 +237,7 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
       break;
     }
 
-    auto* entry =
-        flatbuffers::GetRoot<ninja::BuildLogEntry>(entry_buffer.data());
+    auto* entry = flatbuffers::GetRoot<BuildLogEntry>(entry_buffer.data());
 
     if (!entry->output()) {
       break;
@@ -289,7 +290,7 @@ BuildLog::LogEntry* BuildLog::LookupByOutput(const std::string& path) {
 
 bool BuildLog::WriteEntry(FILE* f, const LogEntry& entry) {
   fbb_.Clear();
-  auto offset = ninja::CreateBuildLogEntry(fbb_, &entry);
+  auto offset = CreateBuildLogEntry(fbb_, &entry);
   fbb_.FinishSizePrefixed(offset);
   return fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), f) ==
          fbb_.GetSize();

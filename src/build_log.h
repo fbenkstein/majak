@@ -84,10 +84,9 @@ struct BuildLog {
   flatbuffers::FlatBufferBuilder fbb_;
 };
 
-namespace ninja
-{
+namespace ninja {
 bool operator==(const BuildLogEntryT& e1, const BuildLogEntryT& e2);
 bool operator!=(const BuildLogEntryT& e1, const BuildLogEntryT& e2);
-}
+}  // namespace ninja
 
 #endif  // NINJA_BUILD_LOG_H_

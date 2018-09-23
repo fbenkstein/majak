@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+namespace ninja {
+
 /// Log a fatal message and exit.
 [[noreturn]] void Fatal(const char* msg, ...);
 
@@ -103,5 +105,7 @@ std::string GetCwd(std::string* err);
 
 /// Returns if the given character is a path separator.
 bool IsPathSeparator(char c);
+
+}  // namespace ninja
 
 #endif  // NINJA_UTIL_H_

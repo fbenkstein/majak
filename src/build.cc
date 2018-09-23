@@ -41,6 +41,8 @@
 #include "subprocess.h"
 #include "util.h"
 
+using namespace ninja;
+
 namespace {
 
 /// A CommandRunner that doesn't actually run the commands.

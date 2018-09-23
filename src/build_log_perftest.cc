@@ -28,6 +28,8 @@
 #include <unistd.h>
 #endif
 
+using namespace ninja;
+
 namespace {
 double now() {
   return std::chrono::duration_cast<std::chrono::duration<double>>(
@@ -110,8 +112,8 @@ bool WriteTestData(std::string* err) {
 
 void BM_BuildLogLoad(benchmark::State& state) {
   std::string err;
-  ninja::error_code ec;
-  ninja::fs::remove(kTestFilename, ec);
+  error_code ec;
+  fs::remove(kTestFilename, ec);
 
   if (!WriteTestData(&err)) {
     state.SkipWithError(("Failed to write test data: " + err).c_str());
@@ -137,7 +139,7 @@ void BM_BuildLogLoad(benchmark::State& state) {
     state.SetIterationTime(now() - start);
   }
 
-  ninja::fs::remove(kTestFilename, ec);
+  fs::remove(kTestFilename, ec);
 }
 BENCHMARK(BM_BuildLogLoad)->Unit(benchmark::kMillisecond)->UseManualTime();
 

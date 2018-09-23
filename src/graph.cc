@@ -27,6 +27,8 @@
 #include "state.h"
 #include "util.h"
 
+using namespace ninja;
+
 bool Node::Stat(DiskInterface* disk_interface, std::string* err) {
   return (mtime_ = disk_interface->Stat(path_, err)) != -1;
 }
@@ -246,8 +248,7 @@ bool DependencyScan::RecomputeOutputDirty(Edge* edge, Node* most_recent_input,
   if (build_log()) {
     bool generator = edge->GetBindingBool("generator");
     if (entry || (entry = build_log()->LookupByOutput(output->path()))) {
-      if (!generator &&
-          BuildLog::HashCommand(command) != entry->command_hash) {
+      if (!generator && BuildLog::HashCommand(command) != entry->command_hash) {
         // May also be dirty due to the command changing since the last build.
         // But if this is a generator rule, the command changing does not make
         // us dirty.

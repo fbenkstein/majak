@@ -18,6 +18,8 @@
 
 #include "util.h"
 
+using namespace ninja;
+
 const char* kNinjaVersion = "1.8.3.git (Majak)";
 
 void ParseVersion(const std::string& version, int* major, int* minor) {

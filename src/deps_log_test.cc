@@ -24,7 +24,7 @@
 #include "test.h"
 #include "util.h"
 
-namespace fs = ninja::fs;
+using namespace ninja;
 
 namespace {
 
@@ -32,7 +32,7 @@ const char kTestFilename[] = "DepsLogTest-tempfile";
 
 struct DepsLogTest : public testing::Test {
   void RemoveTestFile() {
-    ninja::error_code ignore;
+    error_code ignore;
     fs::remove(kTestFilename, ignore);
   }
   virtual void SetUp() {

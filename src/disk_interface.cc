@@ -31,6 +31,8 @@
 #include "metrics.h"
 #include "util.h"
 
+using namespace ninja;
+
 namespace {
 
 std::string DirName(const std::string& path) {

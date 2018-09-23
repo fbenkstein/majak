@@ -27,6 +27,8 @@
 #include "util.h"
 #endif
 
+using namespace ninja;
+
 namespace {
 
 /// Return true if \a input ends with \a needle.
