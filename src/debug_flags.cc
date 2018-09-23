@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+namespace ninja {
+
 bool g_explaining = false;
 
 bool g_keep_depfile = false;
@@ -19,3 +21,5 @@ bool g_keep_depfile = false;
 bool g_keep_rsp = false;
 
 bool g_experimental_statcache = true;
+
+}  // namespace ninja

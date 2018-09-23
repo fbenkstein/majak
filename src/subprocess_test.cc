@@ -24,6 +24,8 @@
 #include <unistd.h>
 #endif
 
+using namespace ninja;
+
 namespace {
 
 #ifdef _WIN32

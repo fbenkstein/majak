@@ -63,7 +63,8 @@ struct VirtualFileSystem : public ninja::DiskInterface {
   int Tick() { return ++now_; }
 
   // DiskInterface
-  virtual TimeStamp Stat(const std::string& path, std::string* err) const;
+  virtual ninja::TimeStamp Stat(const std::string& path,
+                                std::string* err) const;
   virtual bool WriteFile(const std::string& path, const std::string& contents);
   virtual bool MakeDir(const std::string& path);
   virtual Status ReadFile(const std::string& path, std::string* contents,

@@ -20,6 +20,8 @@
 #include <string_view>
 #include <unordered_map>
 
+namespace ninja {
+
 // MurmurHash2, by Austin Appleby
 inline unsigned int MurmurHash2(const void* key, size_t len) {
   static const unsigned int seed = 0xDECAFBAD;
@@ -67,5 +69,7 @@ template <typename V>
 struct ExternalStringHashMap {
   typedef std::unordered_map<std::string_view, V, MurmurHash2Hash> Type;
 };
+
+}  // namespace ninja
 
 #endif  // NINJA_MAP_H_

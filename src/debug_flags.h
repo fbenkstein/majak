@@ -23,6 +23,8 @@
       fprintf(stderr, "ninja explain: " fmt "\n", __VA_ARGS__); \
   }
 
+namespace ninja {
+
 extern bool g_explaining;
 
 extern bool g_keep_depfile;
@@ -30,5 +32,7 @@ extern bool g_keep_depfile;
 extern bool g_keep_rsp;
 
 extern bool g_experimental_statcache;
+
+}  // namespace ninja
 
 #endif  // NINJA_EXPLAIN_H_
