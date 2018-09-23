@@ -24,6 +24,8 @@
 
 #include <windows.h>
 
+namespace ninja {
+
 namespace {
 
 // Return true if paths a and b are on the same windows drive.
@@ -171,3 +173,5 @@ bool IncludesNormalize::Normalize(const std::string& input, std::string* result,
   *result = Relativize(abs_input, split_relative_to_);
   return true;
 }
+
+}  // namespace ninja

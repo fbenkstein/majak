@@ -14,6 +14,8 @@
 
 #include <string>
 
+namespace ninja {
+
 std::string EscapeForDepfile(const std::string& path);
 
 /// Wraps a synchronous execution of a CL subprocess.
@@ -30,3 +32,5 @@ struct CLWrapper {
 
   void* env_block_;
 };
+
+}  // namespace ninja

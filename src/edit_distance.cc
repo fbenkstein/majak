@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <vector>
 
+namespace ninja {
+
 int EditDistance(const std::string_view& s1, const std::string_view& s2,
                  bool allow_replacements, int max_edit_distance) {
   // The algorithm implemented below is the "classic"
@@ -64,3 +66,5 @@ int EditDistance(const std::string_view& s1, const std::string_view& s2,
 
   return row[n];
 }
+
+}  // namespace ninja

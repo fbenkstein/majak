@@ -17,7 +17,9 @@
 
 #include <string_view>
 
+namespace ninja {
 int EditDistance(const std::string_view& s1, const std::string_view& s2,
                  bool allow_replacements = true, int max_edit_distance = 0);
+}
 
 #endif  // NINJA_EDIT_DISTANCE_H_

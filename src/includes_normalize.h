@@ -12,10 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef NINJA_INCLUDES_NORMALIZE_H_
+#define NINJA_INCLUDES_NORMALIZE_H_
+
 #include <string>
 #include <vector>
 
 #include <string_view>
+
+namespace ninja {
 
 /// Utility functions for normalizing include paths on Windows.
 /// TODO: this likely duplicates functionality of CanonicalizePath; refactor.
@@ -37,3 +42,7 @@ struct IncludesNormalize {
   std::string relative_to_;
   std::vector<std::string_view> split_relative_to_;
 };
+
+}  // namespace ninja
+
+#endif  // NINJA_INCLUDES_NORMALIZE_H_

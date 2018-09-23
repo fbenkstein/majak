@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <vector>
 
+namespace ninja {
+
 Metrics* g_metrics = nullptr;
 
 ScopedMetric::ScopedMetric(Metric* metric) {
@@ -70,3 +72,5 @@ int64_t GetTimeMillis() {
              std::chrono::high_resolution_clock::now().time_since_epoch())
       .count();
 }
+
+}  // namespace ninja

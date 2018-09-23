@@ -18,6 +18,8 @@
 
 #include "util.h"
 
+namespace ninja {
+
 namespace {
 
 std::string Replace(const std::string& input, const std::string& find,
@@ -102,3 +104,5 @@ int CLWrapper::Run(const std::string& command, std::string* output) {
 
   return exit_code;
 }
+
+}  // namespace ninja

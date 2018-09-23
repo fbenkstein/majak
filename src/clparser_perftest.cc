@@ -18,6 +18,8 @@
 #include "clparser.h"
 #include "metrics.h"
 
+using namespace ninja;
+
 int main(int argc, char* argv[]) {
   // clang-format off
   // Output of /showIncludes from #include <iostream>

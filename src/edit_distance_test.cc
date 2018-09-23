@@ -16,6 +16,8 @@
 
 #include "test.h"
 
+using namespace ninja;
+
 TEST(EditDistanceTest, TestEmpty) {
   EXPECT_EQ(5, EditDistance("", "ninja"));
   EXPECT_EQ(5, EditDistance("ninja", ""));
