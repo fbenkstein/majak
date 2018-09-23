@@ -22,6 +22,8 @@
 
 #include "timestamp.h"
 
+namespace ninja {
+
 struct Node;
 struct State;
 
@@ -118,5 +120,7 @@ struct DepsLog {
 
   friend struct DepsLogTest;
 };
+
+}  // namespace ninja
 
 #endif  // NINJA_DEPS_LOG_H_

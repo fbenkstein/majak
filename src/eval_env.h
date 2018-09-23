@@ -21,6 +21,8 @@
 
 #include <string_view>
 
+namespace ninja {
+
 struct Rule;
 
 /// An interface for a scope for variable (e.g. "$foo") lookups.
@@ -100,5 +102,7 @@ struct BindingEnv : public Env {
   std::map<std::string, const Rule*> rules_;
   BindingEnv* parent_;
 };
+
+}  // namespace ninja
 
 #endif  // NINJA_EVAL_ENV_H_

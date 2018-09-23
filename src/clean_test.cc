@@ -17,6 +17,8 @@
 
 #include "test.h"
 
+using namespace ninja;
+
 struct CleanTest : public StateTestWithBuiltinRules {
   VirtualFileSystem fs_;
   BuildConfig config_;

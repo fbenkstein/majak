@@ -22,6 +22,8 @@
 #include "timestamp.h"
 #include "util.h"
 
+namespace ninja {
+
 struct BuildLog;
 struct DiskInterface;
 struct DepsLog;
@@ -265,5 +267,7 @@ struct DependencyScan {
   DiskInterface* disk_interface_;
   ImplicitDepLoader dep_loader_;
 };
+
+}  // namespace ninja
 
 #endif  // NINJA_GRAPH_H_

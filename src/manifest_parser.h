@@ -19,6 +19,8 @@
 
 #include "lexer.h"
 
+namespace ninja {
+
 struct BindingEnv;
 struct EvalString;
 struct FileReader;
@@ -83,5 +85,7 @@ struct ManifestParser {
   ManifestParserOptions options_;
   bool quiet_;
 };
+
+}  // namespace ninja
 
 #endif  // NINJA_MANIFEST_PARSER_H_

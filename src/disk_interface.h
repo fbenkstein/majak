@@ -20,6 +20,8 @@
 
 #include "timestamp.h"
 
+namespace ninja {
+
 /// Interface for reading files from disk.  See DiskInterface for details.
 /// This base offers the minimum interface needed just to read files.
 struct FileReader {
@@ -73,5 +75,7 @@ struct RealDiskInterface : public DiskInterface {
                           std::string* err);
   virtual int RemoveFile(const std::string& path);
 };
+
+}
 
 #endif  // NINJA_DISK_INTERFACE_H_

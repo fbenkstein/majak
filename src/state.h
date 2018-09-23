@@ -24,6 +24,8 @@
 #include "hash_map.h"
 #include "util.h"
 
+namespace ninja {
+
 struct Edge;
 struct Node;
 struct Rule;
@@ -127,5 +129,7 @@ struct State {
   BindingEnv bindings_;
   std::vector<Node*> defaults_;
 };
+
+}  // namespace ninja
 
 #endif  // NINJA_STATE_H_

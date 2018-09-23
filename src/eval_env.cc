@@ -16,6 +16,8 @@
 
 #include "eval_env.h"
 
+namespace ninja {
+
 std::string BindingEnv::LookupVariable(const std::string& var) {
   std::map<std::string, std::string>::iterator i = bindings_.find(var);
   if (i != bindings_.end())
@@ -122,3 +124,5 @@ std::string EvalString::Serialize() const {
   }
   return result;
 }
+
+}  // namespace ninja

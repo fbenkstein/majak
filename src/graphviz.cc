@@ -19,6 +19,8 @@
 
 #include "graph.h"
 
+namespace ninja {
+
 void GraphViz::AddTarget(Node* node) {
   if (visited_nodes_.find(node) != visited_nodes_.end())
     return;
@@ -78,3 +80,5 @@ void GraphViz::Start() {
 void GraphViz::Finish() {
   printf("}\n");
 }
+
+}  // namespace ninja

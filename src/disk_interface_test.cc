@@ -23,6 +23,8 @@
 #include "graph.h"
 #include "test.h"
 
+using namespace ninja;
+
 namespace {
 
 struct DiskInterfaceTest : public testing::Test {

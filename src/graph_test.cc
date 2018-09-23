@@ -17,6 +17,8 @@
 
 #include "test.h"
 
+using namespace ninja;
+
 struct GraphTest : public StateTestWithBuiltinRules {
   GraphTest() : scan_(&state_, nullptr, nullptr, &fs_) {}
 

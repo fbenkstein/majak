@@ -19,6 +19,8 @@
 #include "eval_env.h"
 #include "util.h"
 
+namespace ninja {
+
 bool Lexer::Error(const std::string& message, std::string* err) {
   // Compute line/column.
   int line = 1;
@@ -286,4 +288,6 @@ bool Lexer::ReadEvalString(EvalString* eval, bool path, std::string* err) {
     EatWhitespace();
   // Non-path strings end in newlines, so there's no whitespace to eat.
   return true;
+}
+
 }

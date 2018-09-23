@@ -22,6 +22,8 @@
 #include "metrics.h"
 #include "util.h"
 
+namespace ninja {
+
 void Pool::EdgeScheduled(const Edge& edge) {
   if (depth_ != 0)
     current_use_ += edge.weight();
@@ -209,3 +211,5 @@ void State::Dump() {
     }
   }
 }
+
+}  // namespace ninja

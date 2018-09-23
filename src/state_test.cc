@@ -16,6 +16,8 @@
 #include "graph.h"
 #include "test.h"
 
+using namespace ninja;
+
 namespace {
 
 TEST(State, Basic) {

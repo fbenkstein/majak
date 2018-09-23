@@ -25,7 +25,9 @@
 
 // Support utilites for tests.
 
+namespace ninja {
 struct Node;
+}
 
 /// A base test fixture that includes a State object with a
 /// builtin "cat" rule.
@@ -34,23 +36,23 @@ struct StateTestWithBuiltinRules : public testing::Test {
 
   /// Add a "cat" rule to \a state.  Used by some tests; it's
   /// otherwise done by the ctor to state_.
-  void AddCatRule(State* state);
+  void AddCatRule(ninja::State* state);
 
   /// Short way to get a Node by its path from state_.
-  Node* GetNode(const std::string& path);
+  ninja::Node* GetNode(const std::string& path);
 
-  State state_;
+  ninja::State state_;
 };
 
-void AssertParse(State* state, const char* input,
-                 ManifestParserOptions = ManifestParserOptions());
+void AssertParse(ninja::State* state, const char* input,
+                 ninja::ManifestParserOptions = {});
 void AssertHash(const char* expected, uint64_t actual);
-void VerifyGraph(const State& state);
+void VerifyGraph(const ninja::State& state);
 
 /// An implementation of DiskInterface that uses an in-memory representation
 /// of disk state.  It also logs file accesses and directory creations
 /// so it can be used by tests to verify disk access patterns.
-struct VirtualFileSystem : public DiskInterface {
+struct VirtualFileSystem : public ninja::DiskInterface {
   VirtualFileSystem() : now_(1) {}
 
   /// "Create" a file with contents.
