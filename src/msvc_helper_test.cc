@@ -17,6 +17,8 @@
 #include "test.h"
 #include "util.h"
 
+using namespace ninja;
+
 TEST(EscapeForDepfileTest, SpacesInFilename) {
   ASSERT_EQ("sub\\some\\ sdk\\foo.h", EscapeForDepfile("sub\\some sdk\\foo.h"));
 }
