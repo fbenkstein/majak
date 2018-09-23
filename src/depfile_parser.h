@@ -20,6 +20,8 @@
 
 #include <string_view>
 
+namespace ninja {
+
 /// Parser for the dependency information emitted by gcc's -M flags.
 struct DepfileParser {
   /// Parse an input file.  Input must be NUL-terminated.
@@ -30,5 +32,7 @@ struct DepfileParser {
   std::string_view out_;
   std::vector<std::string_view> ins_;
 };
+
+}  // namespace ninja
 
 #endif  // NINJA_DEPFILE_PARSER_H_

@@ -16,6 +16,8 @@
 
 #include "string.h"
 
+namespace ninja {
+
 // A note on backslashes in Makefiles, from reading the docs:
 // Backslash-newline is the line continuation character.
 // Backslash-# escapes a # (otherwise meaningful as a comment start).
@@ -121,4 +123,6 @@ bool DepfileParser::Parse(std::string* content, std::string* err) {
     return false;
   }
   return true;
+}
+
 }

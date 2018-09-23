@@ -16,6 +16,8 @@
 
 #include "test.h"
 
+using namespace ninja;
+
 struct DepfileParserTest : public testing::Test {
   bool Parse(const char* input, std::string* err);
 
