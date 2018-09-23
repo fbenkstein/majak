@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+namespace ninja {
+
 std::vector<std::string_view> SplitStringView(std::string_view input,
                                               char sep) {
   std::vector<std::string_view> elems;
@@ -77,3 +79,5 @@ bool EqualsCaseInsensitiveASCII(std::string_view a, std::string_view b) {
 
   return true;
 }
+
+}  // namespace ninja

@@ -16,6 +16,8 @@
 
 #include "test.h"
 
+using namespace ninja;
+
 TEST(StringPieceUtilTest, SplitStringView) {
   {
     std::string input("a:b:c");

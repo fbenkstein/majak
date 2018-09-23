@@ -19,6 +19,8 @@
 #include <string_view>
 #include <vector>
 
+namespace ninja {
+
 std::vector<std::string_view> SplitStringView(std::string_view input, char sep);
 
 std::string JoinStringView(const std::vector<std::string_view>& list, char sep);
@@ -28,5 +30,7 @@ inline char ToLowerASCII(char c) {
 }
 
 bool EqualsCaseInsensitiveASCII(std::string_view a, std::string_view b);
+
+}  // namespace ninja
 
 #endif  // NINJA_STRINGPIECE_UTIL_H_
