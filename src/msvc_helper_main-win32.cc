@@ -24,6 +24,8 @@
 
 #include "getopt.h"
 
+namespace ninja {
+
 namespace {
 
 void Usage() {
@@ -143,3 +145,5 @@ int MSVCHelperMain(int argc, char** argv) {
 
   return exit_code;
 }
+
+}  // namespace ninja
