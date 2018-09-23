@@ -31,7 +31,7 @@
 #include "metrics.h"
 #include "util.h"
 
-using namespace ninja;
+namespace ninja {
 
 namespace {
 
@@ -183,7 +183,7 @@ bool RealDiskInterface::WriteFile(const std::string& path,
 }
 
 bool RealDiskInterface::MakeDir(const std::string& path) {
-  if (::MakeDir(path) < 0) {
+  if (::ninja::MakeDir(path) < 0) {
     if (errno == EEXIST) {
       return true;
     }
@@ -196,7 +196,7 @@ bool RealDiskInterface::MakeDir(const std::string& path) {
 FileReader::Status RealDiskInterface::ReadFile(const std::string& path,
                                                std::string* contents,
                                                std::string* err) {
-  switch (::ReadFile(path, contents, err)) {
+  switch (::ninja::ReadFile(path, contents, err)) {
   case 0:
     return Okay;
   case -ENOENT:
@@ -219,3 +219,5 @@ int RealDiskInterface::RemoveFile(const std::string& path) {
     return 0;
   }
 }
+
+}  // namespace ninja

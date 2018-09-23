@@ -40,7 +40,7 @@
 
 #include "build_log_schema.h"
 
-using namespace ninja;
+namespace ninja {
 
 // Implementation details:
 // Each run's log appends to the log file.
@@ -345,7 +345,6 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
   return true;
 }
 
-namespace ninja {
 bool operator==(const BuildLogEntryT& e1, const BuildLogEntryT& e2) {
   auto to_tuple = [](const BuildLogEntryT& e) {
     return std::tie(e.output, e.command_hash, e.start_time, e.end_time,

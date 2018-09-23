@@ -25,7 +25,7 @@
 #include "util.h"
 #include "version.h"
 
-using namespace ninja;
+namespace ninja {
 
 ManifestParser::ManifestParser(State* state, FileReader* file_reader,
                                ManifestParserOptions options)
@@ -453,3 +453,5 @@ bool ManifestParser::ExpectToken(Lexer::Token expected, std::string* err) {
   }
   return true;
 }
+
+}  // namespace ninja

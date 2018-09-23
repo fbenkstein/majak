@@ -22,7 +22,7 @@
 #include "state.h"
 #include "util.h"
 
-using namespace ninja;
+namespace ninja {
 
 Cleaner::Cleaner(State* state, const BuildConfig& config)
     : state_(state), config_(config), removed_(), cleaned_(),
@@ -259,3 +259,5 @@ void Cleaner::Reset() {
   removed_.clear();
   cleaned_.clear();
 }
+
+}  // namespace ninja

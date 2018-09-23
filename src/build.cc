@@ -41,7 +41,7 @@
 #include "subprocess.h"
 #include "util.h"
 
-using namespace ninja;
+namespace ninja {
 
 namespace {
 
@@ -940,3 +940,5 @@ bool Builder::ExtractDeps(CommandRunner::Result* result,
 
   return true;
 }
+
+}  // namespace ninja

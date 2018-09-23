@@ -27,7 +27,7 @@
 #include "util.h"
 #endif
 
-using namespace ninja;
+namespace ninja {
 
 namespace {
 
@@ -124,3 +124,5 @@ bool CLParser::Parse(const std::string& output, const std::string& deps_prefix,
 
   return true;
 }
+
+}  // namespace ninja

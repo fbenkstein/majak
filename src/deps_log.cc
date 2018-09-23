@@ -27,8 +27,7 @@
 #include "state.h"
 #include "util.h"
 
-using namespace ninja;
-
+namespace ninja {
 // The version is stored as 4 bytes after the signature and also serves as a
 // byte order mark. Signature and version combined are 16 bytes long.
 const char kFileSignature[] = "# ninjadeps\n";
@@ -181,8 +180,9 @@ bool DepsLog::Load(const std::string& path, State* state, std::string* err) {
     valid_header = false;
   // Note: For version differences, this should migrate to the new format.
   // But the v1 format could sometimes (rarely) end up with invalid data, so
-  // don't migrate v1 to v3 to force a rebuild. (v2 only existed for a few days,
-  // and there was no release with it, so pretend that it never happened.)
+  // don't migrate v1 to v3 to force a rebuild. (v2 only existed for a few
+  // days, and there was no release with it, so pretend that it never
+  // happened.)
   if (!valid_header || strcmp(buf, kFileSignature) != 0 ||
       version != kCurrentVersion) {
     if (version == 1)
@@ -249,16 +249,16 @@ bool DepsLog::Load(const std::string& path, State* state, std::string* err) {
         --path_size;
       std::string_view subpath(buf, path_size);
       // It is not necessary to pass in a correct slash_bits here. It will
-      // either be a Node that's in the manifest (in which case it will already
-      // have a correct slash_bits that GetNode will look up), or it is an
-      // implicit dependency from a .d which does not affect the build command
-      // (and so need not have its slashes maintained).
+      // either be a Node that's in the manifest (in which case it will
+      // already have a correct slash_bits that GetNode will look up), or it
+      // is an implicit dependency from a .d which does not affect the build
+      // command (and so need not have its slashes maintained).
       Node* node = state->GetNode(subpath, 0);
 
       // Check that the expected index matches the actual index. This can only
-      // happen if two ninja processes write to the same deps log concurrently.
-      // (This uses unary complement to make the checksum look less like a
-      // dependency record entry.)
+      // happen if two ninja processes write to the same deps log
+      // concurrently. (This uses unary complement to make the checksum look
+      // less like a dependency record entry.)
       unsigned checksum = *reinterpret_cast<unsigned*>(buf + size - 4);
       int expected_id = ~checksum;
       int id = nodes_.size();
@@ -417,3 +417,4 @@ bool DepsLog::RecordId(Node* node) {
 
   return true;
 }
+}  // namespace ninja
