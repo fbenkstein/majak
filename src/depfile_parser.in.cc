@@ -125,4 +125,4 @@ bool DepfileParser::Parse(std::string* content, std::string* err) {
   return true;
 }
 
-}
+}  // namespace ninja

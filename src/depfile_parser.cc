@@ -206,4 +206,4 @@ yy15:
   return true;
 }
 
-}
+}  // namespace ninja

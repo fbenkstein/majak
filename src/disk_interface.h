@@ -76,6 +76,6 @@ struct RealDiskInterface : public DiskInterface {
   virtual int RemoveFile(const std::string& path);
 };
 
-}
+}  // namespace ninja
 
 #endif  // NINJA_DISK_INTERFACE_H_
