@@ -8,3 +8,6 @@
 [submodule "ext/flatbuffers"]
 	path = ext/flatbuffers
 	url = https://github.com/google/flatbuffers.git
+[submodule "ext/lua-argparse"]
+	path = ext/lua-argparse
+	url = https://github.com/mpeterv/argparse.git
