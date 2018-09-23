@@ -20,6 +20,7 @@
 #include "disk_interface.h"
 #include "state.h"
 
+namespace ninja {
 #ifdef _MSC_VER
 // Defined in msvc_helper_main-win32.cc.
 int MSVCHelperMain(int argc, char** argv);
@@ -28,7 +29,6 @@ int MSVCHelperMain(int argc, char** argv);
 void CreateWin32MiniDump(_EXCEPTION_POINTERS* pep);
 #endif
 
-namespace ninja {
 struct Tool;
 
 /// Command-line options.
