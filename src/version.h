@@ -17,6 +17,8 @@
 
 #include <string>
 
+namespace ninja {
+
 /// The version number of the current Ninja release.  This will always
 /// be "git" on trunk.
 extern const char* kNinjaVersion;
@@ -27,5 +29,7 @@ void ParseVersion(const std::string& version, int* major, int* minor);
 /// Check whether \a version is compatible with the current Ninja version,
 /// aborting if not.
 void CheckNinjaVersion(const std::string& required_version);
+
+}  // namespace ninja
 
 #endif  // NINJA_VERSION_H_

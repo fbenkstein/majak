@@ -18,7 +18,7 @@
 
 #include "util.h"
 
-using namespace ninja;
+namespace ninja {
 
 const char* kNinjaVersion = "1.8.3.git (Majak)";
 
@@ -55,3 +55,5 @@ void CheckNinjaVersion(const std::string& version) {
         kNinjaVersion, version.c_str());
   }
 }
+
+}  // namespace ninja
