@@ -332,17 +332,30 @@ set_package_properties(PythonInterp PROPERTIES
 
 configure_file(src/ninja_config.in.h ninja_config.h)
 
-add_library(libninja STATIC ${ninja_sources})
+add_library(libninja-config INTERFACE)
+target_compile_options(libninja-config INTERFACE ${ninja_compile_options})
+target_compile_definitions(libninja-config INTERFACE ${ninja_compile_definitions})
+target_include_directories(libninja-config INTERFACE "${CMAKE_CURRENT_BINARY_DIR}" ext/flatbuffers/include)
+target_link_libraries(libninja-config INTERFACE flatbuffers "${NINJA_FILESYSTEM_LIBRARY}")
+
+add_library(libninja-objects OBJECT ${ninja_sources})
+target_link_libraries(libninja-objects PUBLIC libninja-config)
+target_compile_definitions(libninja-objects PRIVATE ${ninja_private_compile_definitions})
+
+add_library(libninja STATIC $<TARGET_OBJECTS:libninja-objects>)
+target_link_libraries(libninja PUBLIC libninja-config)
 set_property(TARGET libninja PROPERTY PREFIX "")
-set_property(TARGET libninja PROPERTY CXX_VISIBILITY_PRESET hidden)
-target_compile_options(libninja PUBLIC ${ninja_compile_options})
-target_compile_definitions(
-    libninja
-    PUBLIC ${ninja_compile_definitions}
-    PRIVATE ${ninja_private_compile_definitions}
-)
-target_include_directories(libninja PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" ext/flatbuffers/include)
-target_link_libraries(libninja PUBLIC flatbuffers "${NINJA_FILESYSTEM_LIBRARY}")
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
+    set_property(TARGET libninja-objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+    add_library(libninja-for-tests SHARED $<TARGET_OBJECTS:libninja-objects>)
+    target_link_libraries(libninja-for-tests PUBLIC libninja-config)
+    set_property(TARGET libninja-for-tests PROPERTY PREFIX "")
+else()
+    add_library(libninja-for-tests INTERFACE)
+    target_link_libraries(libninja-for-tests INTERFACE libninja)
+endif()
 
 add_executable(ninja src/ninja_main.cc)
 target_link_libraries(ninja libninja)
@@ -382,7 +395,7 @@ if (NINJA_BUILD_TESTS)
     endif()
 
     add_executable(ninja_test ${ninja_test_sources})
-    target_link_libraries(ninja_test ${ninja_filesystem_library} libninja gtest gtest_main)
+    target_link_libraries(ninja_test ${ninja_filesystem_library} libninja-for-tests gtest gtest_main)
     if (COMMAND gtest_discover_tests)
         gtest_discover_tests(ninja_test)
     else()
@@ -406,7 +419,7 @@ if (NINJA_BUILD_TESTS)
 
     foreach(perftest_name IN LISTS ninja_perftests)
         add_executable(${perftest_name} src/${perftest_name}.cc)
-        target_link_libraries(${perftest_name} libninja)
+        target_link_libraries(${perftest_name} libninja-for-tests)
     endforeach()
     set_property(
         SOURCE src/manifest_parser_perftest.cc
@@ -416,7 +429,7 @@ if (NINJA_BUILD_TESTS)
 
     foreach(perftest_name IN LISTS ninja_bench_perftests)
         add_executable(${perftest_name} src/${perftest_name}.cc)
-        target_link_libraries(${perftest_name} libninja benchmark)
+        target_link_libraries(${perftest_name} libninja-for-tests benchmark)
     endforeach()
 
     if (Boost_FILESYSTEM_FOUND)
