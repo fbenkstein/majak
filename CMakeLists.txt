@@ -61,11 +61,6 @@ else()
         OFF
     )
 endif()
-option(
-    NINJA_ENABLE_RTTI
-    "Build ninja with RTTI enabled"
-    OFF
-)
 
 add_feature_info(
     build_tests
@@ -120,6 +115,7 @@ set(
     src/manifest_parser.cc
     src/metrics.cc
     src/ninja.cc
+    src/path_manager.cc
     src/state.cc
     src/string_piece_util.cc
     src/util.cc
@@ -387,6 +383,7 @@ if (NINJA_BUILD_TESTS)
         src/graph_test.cc
         src/lexer_test.cc
         src/manifest_parser_test.cc
+        src/path_manager_test.cc
         src/state_test.cc
         src/string_piece_util_test.cc
         src/subprocess_test.cc
