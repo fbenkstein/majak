@@ -28,6 +28,17 @@ message(STATUS "NINJA_FILESYSTEM_INCLUDE: ${NINJA_FILESYSTEM_INCLUDE}")
 message(STATUS "NINJA_FILESYSTEM_NAMESPACE: ${NINJA_FILESYSTEM_NAMESPACE}")
 message(STATUS "NINJA_FILESYSTEM_LIBRARY: ${NINJA_FILESYSTEM_LIBRARY}")
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
+    add_compile_definitions(_GLIBCXX_DEBUG _GLIBCXX_DEBUG_PEDANTIC)
+    set(NINJA_ENABLE_RTTI ON)
+else()
+    option(
+        NINJA_ENABLE_RTTI
+        "Build ninja with RTTI enabled"
+        OFF
+    )
+endif()
+
 option(
     NINJA_FORCE_PSELECT
     [=[
@@ -220,14 +231,12 @@ else()
         -iquote "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
 
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        list(APPEND ninja_compile_definitions _GLIBCXX_DEBUG _GLIBCXX_DEBUG_PEDANTIC)
-    elseif(NOT NINJA_ENABLE_RTTI)
-        list(APPEND ninja_compile_options -fno-rtti)
-    endif()
-
     if (NOT NINJA_ENABLE_EXCEPTIONS)
         list(APPEND ninja_compile_options -fno-exceptions)
+    endif()
+
+    if(NOT NINJA_ENABLE_RTTI)
+        list(APPEND ninja_compile_options -fno-rtti)
     endif()
 
     if (NOT NINJA_FORCE_PSELECT)
