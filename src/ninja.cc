@@ -153,11 +153,6 @@ Node* NinjaMain::CollectTarget(const char* cpath, bool source_dwim,
       *err += ", did you mean 'ninja -t clean'?";
     } else if (path == "help") {
       *err += ", did you mean 'ninja -h'?";
-    } else {
-      Node* suggestion = state_.SpellcheckNode(path);
-      if (suggestion) {
-        *err += ", did you mean '" + suggestion->path() + "'?";
-      }
     }
     return nullptr;
   }
@@ -386,14 +381,7 @@ int NinjaMain::ToolTargets(const Options* options, int argc, char* argv[]) {
     } else if (mode == "all") {
       return ToolTargetsList(&state_);
     } else {
-      const char* suggestion =
-          SpellcheckString(mode.c_str(), "rule", "depth", "all", nullptr);
-      if (suggestion) {
-        Error("unknown target tool mode '%s', did you mean '%s'?", mode.c_str(),
-              suggestion);
-      } else {
-        Error("unknown target tool mode '%s'", mode.c_str());
-      }
+      Error("unknown target tool mode '%s'", mode.c_str());
       return 1;
     }
   }
@@ -700,16 +688,7 @@ const Tool* ChooseTool(const std::string& tool_name) {
       return tool;
   }
 
-  std::vector<const char*> words;
-  for (const Tool* tool = &kTools[0]; tool->name; ++tool)
-    words.push_back(tool->name);
-  const char* suggestion = SpellcheckStringV(tool_name, words);
-  if (suggestion) {
-    Fatal("unknown tool '%s', did you mean '%s'?", tool_name.c_str(),
-          suggestion);
-  } else {
-    Fatal("unknown tool '%s'", tool_name.c_str());
-  }
+  Fatal("unknown tool '%s'", tool_name.c_str());
   return nullptr;  // Not reached.
 }
 
@@ -739,15 +718,7 @@ bool DebugEnable(const std::string& name) {
     g_keep_rsp = true;
     return true;
   } else {
-    const char* suggestion =
-        SpellcheckString(name.c_str(), "stats", "explain", "keepdepfile",
-                         "keeprsp", "nostatcache", nullptr);
-    if (suggestion) {
-      Error("unknown debug setting '%s', did you mean '%s'?", name.c_str(),
-            suggestion);
-    } else {
-      Error("unknown debug setting '%s'", name.c_str());
-    }
+    Error("unknown debug setting '%s'", name.c_str());
     return false;
   }
 }
@@ -772,15 +743,7 @@ bool WarningEnable(const std::string& name, Options* options) {
     options->phony_cycle_should_err = false;
     return true;
   } else {
-    const char* suggestion =
-        SpellcheckString(name.c_str(), "dupbuild=err", "dupbuild=warn",
-                         "phonycycle=err", "phonycycle=warn", nullptr);
-    if (suggestion) {
-      Error("unknown warning flag '%s', did you mean '%s'?", name.c_str(),
-            suggestion);
-    } else {
-      Error("unknown warning flag '%s'", name.c_str());
-    }
+    Error("unknown warning flag '%s'", name.c_str());
     return false;
   }
 }

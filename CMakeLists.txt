@@ -123,7 +123,6 @@ set(
     src/debug_flags.cc
     src/deps_log.cc
     src/disk_interface.cc
-    src/edit_distance.cc
     src/eval_env.cc
     src/graph.cc
     src/graphviz.cc
@@ -397,7 +396,6 @@ if (NINJA_BUILD_TESTS)
         src/depfile_parser_test.cc
         src/deps_log_test.cc
         src/disk_interface_test.cc
-        src/edit_distance_test.cc
         src/graph_test.cc
         src/lexer_test.cc
         src/manifest_parser_test.cc

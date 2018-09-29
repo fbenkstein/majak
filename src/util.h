@@ -55,14 +55,6 @@ int ReadFile(const std::string& path, std::string* contents, std::string* err);
 /// Mark a file descriptor to not be inherited on exec()s.
 void SetCloseOnExec(int fd);
 
-/// Given a misspelled string and a list of correct spellings, returns
-/// the closest match or nullptr if there is no close enough match.
-const char* SpellcheckStringV(const std::string& text,
-                              const std::vector<const char*>& words);
-
-/// Like SpellcheckStringV, but takes a nullptr-terminated list.
-const char* SpellcheckString(const char* text, ...);
-
 bool islatinalpha(int c);
 
 /// Removes all Ansi escape codes (http://www.termsys.demon.co.uk/vtansi.htm).

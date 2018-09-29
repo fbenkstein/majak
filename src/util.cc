@@ -54,7 +54,6 @@
 #include <sys/sysinfo.h>
 #endif
 
-#include "edit_distance.h"
 #include "metrics.h"
 
 namespace ninja {
@@ -412,38 +411,6 @@ void SetCloseOnExec(int fd) {
     fprintf(stderr, "SetHandleInformation(): %s", GetLastErrorString().c_str());
   }
 #endif  // ! _WIN32
-}
-
-const char* SpellcheckStringV(const std::string& text,
-                              const std::vector<const char*>& words) {
-  const bool kAllowReplacements = true;
-  const int kMaxValidEditDistance = 3;
-
-  int min_distance = kMaxValidEditDistance + 1;
-  const char* result = nullptr;
-  for (std::vector<const char*>::const_iterator i = words.begin();
-       i != words.end(); ++i) {
-    int distance =
-        EditDistance(*i, text, kAllowReplacements, kMaxValidEditDistance);
-    if (distance < min_distance) {
-      min_distance = distance;
-      result = *i;
-    }
-  }
-  return result;
-}
-
-const char* SpellcheckString(const char* text, ...) {
-  // Note: This takes a const char* instead of a string& because using
-  // va_start() with a reference parameter is undefined behavior.
-  va_list ap;
-  va_start(ap, text);
-  std::vector<const char*> words;
-  const char* word;
-  while ((word = va_arg(ap, const char*)))
-    words.push_back(word);
-  va_end(ap);
-  return SpellcheckStringV(text, words);
 }
 
 #ifdef _WIN32

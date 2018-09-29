@@ -17,7 +17,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "edit_distance.h"
 #include "graph.h"
 #include "metrics.h"
 #include "util.h"
@@ -117,23 +116,6 @@ Node* State::LookupNode(std::string_view path) const {
   if (i != paths_.end())
     return i->second;
   return nullptr;
-}
-
-Node* State::SpellcheckNode(const std::string& path) {
-  const bool kAllowReplacements = true;
-  const int kMaxValidEditDistance = 3;
-
-  int min_distance = kMaxValidEditDistance + 1;
-  Node* result = nullptr;
-  for (Paths::iterator i = paths_.begin(); i != paths_.end(); ++i) {
-    int distance =
-        EditDistance(i->first, path, kAllowReplacements, kMaxValidEditDistance);
-    if (distance < min_distance && i->second) {
-      min_distance = distance;
-      result = i->second;
-    }
-  }
-  return result;
 }
 
 void State::AddIn(Edge* edge, std::string_view path, uint64_t slash_bits) {

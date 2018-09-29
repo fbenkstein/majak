@@ -98,7 +98,6 @@ struct State {
 
   Node* GetNode(std::string_view path, uint64_t slash_bits);
   Node* LookupNode(std::string_view path) const;
-  Node* SpellcheckNode(const std::string& path);
 
   void AddIn(Edge* edge, std::string_view path, uint64_t slash_bits);
   bool AddOut(Edge* edge, std::string_view path, uint64_t slash_bits);
