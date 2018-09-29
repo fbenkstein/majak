@@ -239,6 +239,11 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
 
     auto* entry = flatbuffers::GetRoot<BuildLogEntry>(entry_buffer.data());
 
+    flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
+    if (!entry->Verify(verifier)) {
+        break;
+    }
+
     if (!entry->output()) {
       break;
     }
