@@ -20,6 +20,8 @@
 
 #include <stdio.h>
 
+#include <flatbuffers/flatbuffers.h>
+
 #include "timestamp.h"
 
 namespace ninja {
@@ -117,6 +119,8 @@ struct DepsLog {
   std::vector<Node*> nodes_;
   /// Maps id -> deps of that id.
   std::vector<Deps*> deps_;
+
+  flatbuffers::FlatBufferBuilder fbb_;
 
   friend struct DepsLogTest;
 };

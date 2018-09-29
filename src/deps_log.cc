@@ -23,6 +23,7 @@
 #endif
 
 #include "graph.h"
+#include "log_generated.h"
 #include "metrics.h"
 #include "state.h"
 #include "util.h"
@@ -30,8 +31,8 @@
 namespace ninja {
 // The version is stored as 4 bytes after the signature and also serves as a
 // byte order mark. Signature and version combined are 16 bytes long.
-const char kFileSignature[] = "# ninjadeps\n";
-const int kCurrentVersion = 4;
+const char kFileSignature[] = "# majakdeps\n";
+const int kCurrentVersion = 1;
 
 // Record size is currently limited to less than the full 32 bit, due to
 // internal buffers having to have this size.
@@ -122,29 +123,28 @@ bool DepsLog::RecordDeps(Node* node, TimeStamp mtime, int node_count,
   if (!made_change)
     return true;
 
-  // Update on-disk representation.
-  unsigned size = 4 * (1 + 2 + node_count);
-  if (size > kMaxRecordSize) {
-    errno = ERANGE;
-    return false;
+  DepsLogEntryT entry;
+
+  {
+    DepsLogDepsT deps;
+    deps.output = node->id();
+    deps.mtime = mtime;
+    deps.deps.reserve(node_count);
+
+    for (int i = 0; i < node_count; ++i) {
+      deps.deps.push_back(nodes[i]->id());
+    }
+
+    entry.value.Set(std::move(deps));
   }
-  size |= 0x80000000;  // Deps record: set high bit.
-  if (fwrite(&size, 4, 1, file_) < 1)
+
+  fbb_.Clear();
+  auto offset = CreateDepsLogEntry(fbb_, &entry);
+  fbb_.FinishSizePrefixed(offset);
+  if (fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), file_) !=
+      fbb_.GetSize())
     return false;
-  int id = node->id();
-  if (fwrite(&id, 4, 1, file_) < 1)
-    return false;
-  uint32_t mtime_part = static_cast<uint32_t>(mtime & 0xffffffff);
-  if (fwrite(&mtime_part, 4, 1, file_) < 1)
-    return false;
-  mtime_part = static_cast<uint32_t>((mtime >> 32) & 0xffffffff);
-  if (fwrite(&mtime_part, 4, 1, file_) < 1)
-    return false;
-  for (int i = 0; i < node_count; ++i) {
-    id = nodes[i]->id();
-    if (fwrite(&id, 4, 1, file_) < 1)
-      return false;
-  }
+
   if (fflush(file_) != 0)
     return false;
 
@@ -178,11 +178,6 @@ bool DepsLog::Load(const std::string& path, State* state, std::string* err) {
   int version = 0;
   if (!fgets(buf, sizeof(buf), f) || fread(&version, 4, 1, f) < 1)
     valid_header = false;
-  // Note: For version differences, this should migrate to the new format.
-  // But the v1 format could sometimes (rarely) end up with invalid data, so
-  // don't migrate v1 to v3 to force a rebuild. (v2 only existed for a few
-  // days, and there was no release with it, so pretend that it never
-  // happened.)
   if (!valid_header || strcmp(buf, kFileSignature) != 0 ||
       version != kCurrentVersion) {
     if (version == 1)
@@ -200,36 +195,43 @@ bool DepsLog::Load(const std::string& path, State* state, std::string* err) {
   bool read_failed = false;
   int unique_dep_record_count = 0;
   int total_dep_record_count = 0;
+  uint8_t size_buffer[sizeof(flatbuffers::uoffset_t)];
+  std::vector<uint8_t> entry_buffer;
+
   for (;;) {
     offset = ftell(f);
 
-    unsigned size;
-    if (fread(&size, 4, 1, f) < 1) {
-      if (!feof(f))
-        read_failed = true;
+    if (fread(size_buffer, 1, sizeof(size_buffer), f) !=
+        sizeof(size_buffer)) {
+      read_failed = !feof(f);
       break;
     }
-    bool is_deps = (size >> 31) != 0;
-    size = size & 0x7FFFFFFF;
 
-    if (size > kMaxRecordSize || fread(buf, size, 1, f) < 1) {
+    size_t entry_size = flatbuffers::GetPrefixedSize(size_buffer);
+
+    entry_buffer.resize(std::max(entry_buffer.size(), entry_size));
+
+    if (fread(entry_buffer.data(), 1, entry_size, f) != entry_size) {
       read_failed = true;
       break;
     }
 
-    if (is_deps) {
-      assert(size % 4 == 0);
-      int* deps_data = reinterpret_cast<int*>(buf);
-      int out_id = deps_data[0];
-      TimeStamp mtime;
-      mtime = (TimeStamp)(((uint64_t)(unsigned int)deps_data[2] << 32) |
-                          (uint64_t)(unsigned int)deps_data[1]);
-      deps_data += 3;
-      int deps_count = (size / 4) - 3;
+    auto* entry = flatbuffers::GetRoot<DepsLogEntry>(entry_buffer.data());
 
-      Deps* deps = new Deps(mtime, deps_count);
+    flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
+    if (!entry->Verify(verifier)) {
+      read_failed = true;
+      break;
+    }
+
+    if (auto deps_entry = entry->value_as_DepsLogDeps()) {
+      const auto& deps_data = *deps_entry->deps();
+      int deps_count = deps_data.size();
+      int out_id = deps_entry->output();
+      Deps* deps = new Deps(deps_entry->mtime(), deps_count);
+
       for (int i = 0; i < deps_count; ++i) {
-        assert(deps_data[i] < (int)nodes_.size());
+        assert(deps_data[i] < nodes_.size());
         assert(nodes_[deps_data[i]]);
         deps->nodes[i] = nodes_[deps_data[i]];
       }
@@ -237,30 +239,22 @@ bool DepsLog::Load(const std::string& path, State* state, std::string* err) {
       total_dep_record_count++;
       if (!UpdateDeps(out_id, deps))
         ++unique_dep_record_count;
-    } else {
-      int path_size = size - 4;
-      assert(path_size > 0);  // CanonicalizePath() rejects empty paths.
-      // There can be up to 3 bytes of padding.
-      if (buf[path_size - 1] == '\0')
-        --path_size;
-      if (buf[path_size - 1] == '\0')
-        --path_size;
-      if (buf[path_size - 1] == '\0')
-        --path_size;
-      std::string_view subpath(buf, path_size);
+    } else if (auto deps_path_entry = entry->value_as_DepsLogPath()) {
+      const flatbuffers::String* deps_path = deps_path_entry->path();
+
+      if (!deps_path) {
+        read_failed = true;
+        break;
+      }
+
+      std::string_view path(deps_path->c_str(), deps_path->size());
       // It is not necessary to pass in a correct slash_bits here. It will
       // either be a Node that's in the manifest (in which case it will
       // already have a correct slash_bits that GetNode will look up), or it
       // is an implicit dependency from a .d which does not affect the build
       // command (and so need not have its slashes maintained).
-      Node* node = state->GetNode(subpath, 0);
-
-      // Check that the expected index matches the actual index. This can only
-      // happen if two ninja processes write to the same deps log
-      // concurrently. (This uses unary complement to make the checksum look
-      // less like a dependency record entry.)
-      unsigned checksum = *reinterpret_cast<unsigned*>(buf + size - 4);
-      int expected_id = ~checksum;
+      Node* node = state->GetNode(path, 0);
+      int expected_id = ~deps_path_entry->checksum();
       int id = nodes_.size();
       if (id != expected_id) {
         read_failed = true;
@@ -389,26 +383,21 @@ bool DepsLog::UpdateDeps(int out_id, Deps* deps) {
 }
 
 bool DepsLog::RecordId(Node* node) {
-  int path_size = node->path().size();
-  int padding = (4 - path_size % 4) % 4;  // Pad path to 4 byte boundary.
-
-  unsigned size = path_size + padding + 4;
-  if (size > kMaxRecordSize) {
-    errno = ERANGE;
-    return false;
-  }
-  if (fwrite(&size, 4, 1, file_) < 1)
-    return false;
-  if (fwrite(node->path().data(), path_size, 1, file_) < 1) {
-    assert(node->path().size() > 0);
-    return false;
-  }
-  if (padding && fwrite("\0\0", padding, 1, file_) < 1)
-    return false;
   int id = nodes_.size();
-  unsigned checksum = ~(unsigned)id;
-  if (fwrite(&checksum, 4, 1, file_) < 1)
+  DepsLogPathT deps_path;
+  deps_path.path = node->path();
+  deps_path.checksum = ~static_cast<uint32_t>(id);
+
+  DepsLogEntryT entry;
+  entry.value.Set(std::move(deps_path));
+
+  fbb_.Clear();
+  auto offset = CreateDepsLogEntry(fbb_, &entry);
+  fbb_.FinishSizePrefixed(offset);
+  if (fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), file_) !=
+      fbb_.GetSize())
     return false;
+
   if (fflush(file_) != 0)
     return false;
 

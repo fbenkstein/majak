@@ -12,3 +12,23 @@ table BuildLogEntry {
   /// Timestamp of the output.
   mtime:int64;
 }
+
+table DepsLogPath {
+  checksum:uint32;
+  path:string (required);
+}
+
+table DepsLogDeps {
+  output:uint32;
+  mtime:int64;
+  deps:[uint32] (required);
+}
+
+union DepsLogEntryUnion {
+  DepsLogPath,
+  DepsLogDeps,
+}
+
+table DepsLogEntry {
+  value:DepsLogEntryUnion;
+}
