@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.9)
 cmake_policy(SET CMP0063 NEW)
 
 project(majak LANGUAGES C CXX)
@@ -29,7 +29,7 @@ message(STATUS "NINJA_FILESYSTEM_NAMESPACE: ${NINJA_FILESYSTEM_NAMESPACE}")
 message(STATUS "NINJA_FILESYSTEM_LIBRARY: ${NINJA_FILESYSTEM_LIBRARY}")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
-    add_compile_definitions(_GLIBCXX_DEBUG _GLIBCXX_DEBUG_PEDANTIC)
+    add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC)
     set(NINJA_ENABLE_RTTI ON)
 else()
     option(
@@ -37,6 +37,12 @@ else()
         "Build ninja with RTTI enabled"
         OFF
     )
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_VERSION VERSION_GREATER "3.12")
+    set(ninja_shared_for_tests_default ON)
+else()
+    set(ninja_shared_for_tests_default OFF)
 endif()
 
 option(
@@ -51,6 +57,11 @@ option(
     NINJA_BUILD_TESTS
     "Build ninja tests and benchmarks."
     ON
+)
+option(
+    NINJA_SHARED_FOR_TESTS
+    "Build a shared library for tests to reduce relinking."
+    ninja_shared_for_tests_default
 )
 if (NINJA_FILESYSTEM_NAMESPACE STREQUAL "boost::filesystem")
     set(NINJA_ENABLE_EXCEPTIONS ON CACHE INTERNAL FORCE "")
@@ -347,23 +358,26 @@ target_compile_definitions(libninja-config INTERFACE ${ninja_compile_definitions
 target_include_directories(libninja-config INTERFACE "${CMAKE_CURRENT_BINARY_DIR}" ext/flatbuffers/include)
 target_link_libraries(libninja-config INTERFACE flatbuffers "${NINJA_FILESYSTEM_LIBRARY}")
 
-add_library(libninja-objects OBJECT ${ninja_sources})
-target_link_libraries(libninja-objects PUBLIC libninja-config)
-target_compile_definitions(libninja-objects PRIVATE ${ninja_private_compile_definitions})
+if (NINJA_SHARED_FOR_TESTS)
+    add_library(libninja-objects OBJECT ${ninja_sources})
+    target_link_libraries(libninja-objects PUBLIC libninja-config)
+    target_compile_definitions(libninja-objects PRIVATE ${ninja_private_compile_definitions})
 
-add_library(libninja STATIC $<TARGET_OBJECTS:libninja-objects>)
-target_link_libraries(libninja PUBLIC libninja-config)
-set_property(TARGET libninja PROPERTY PREFIX "")
+    add_library(libninja STATIC $<TARGET_OBJECTS:libninja-objects>)
+    target_link_libraries(libninja PUBLIC libninja-config)
+    set_property(TARGET libninja PROPERTY PREFIX "")
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
     set_property(TARGET libninja-objects PROPERTY POSITION_INDEPENDENT_CODE ON)
     add_library(libninja-for-tests SHARED $<TARGET_OBJECTS:libninja-objects>)
     target_link_libraries(libninja-for-tests PUBLIC libninja-config)
     set_property(TARGET libninja-for-tests PROPERTY PREFIX "")
 else()
-    add_library(libninja-for-tests INTERFACE)
-    target_link_libraries(libninja-for-tests INTERFACE libninja)
+    add_library(libninja STATIC ${ninja_sources})
+    target_link_libraries(libninja PUBLIC libninja-config)
+    target_compile_definitions(libninja PRIVATE ${ninja_private_compile_definitions})
+
+    add_library(libninja-for-tests ALIAS libninja)
 endif()
 
 add_executable(ninja src/ninja_main.cc)
