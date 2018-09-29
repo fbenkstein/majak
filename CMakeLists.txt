@@ -313,34 +313,34 @@ if (PYTHONINTERP_FOUND AND NOT WIN32)
 endif()
 
 add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
-    DEPENDS src/build_log.fbs cmake/inline.cmake
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/log_schema.h"
+    DEPENDS src/log.fbs cmake/inline.cmake
     COMMAND
         "${CMAKE_COMMAND}"
-        -DINPUT=src/build_log.fbs
-        -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
+        -DINPUT=src/log.fbs
+        -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/log_schema.h"
         -DVARNAME=kBuildLogSchema
         -P cmake/inline.cmake
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    COMMENT "[inline] src/build_log.fbs"
+    COMMENT "[inline] src/log.fbs"
 )
 add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build_log_generated.h"
-    DEPENDS src/build_log.fbs
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/log_generated.h"
+    DEPENDS src/log.fbs
     COMMAND
         flatc
         --cpp
         -o ${CMAKE_CURRENT_BINARY_DIR}
         --gen-object-api
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/build_log.fbs
-    COMMENT "[flatc] src/build_log.fbs"
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/log.fbs
+    COMMENT "[flatc] src/log.fbs"
 )
 set_property(
     SOURCE src/build_log.cc
     PROPERTY
     OBJECT_DEPENDS
-        "${CMAKE_CURRENT_BINARY_DIR}/build_log_schema.h"
-        "${CMAKE_CURRENT_BINARY_DIR}/build_log_generated.h"
+        "${CMAKE_CURRENT_BINARY_DIR}/log_schema.h"
+        "${CMAKE_CURRENT_BINARY_DIR}/log_generated.h"
 )
 
 set_package_properties(PythonInterp PROPERTIES

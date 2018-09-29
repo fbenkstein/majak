@@ -20,7 +20,7 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "build_log_generated.h"
+#include "log_generated.h"
 #include "hash_map.h"
 #include "timestamp.h"
 #include "util.h"  // uint64_t

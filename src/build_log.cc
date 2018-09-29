@@ -21,7 +21,7 @@
 #endif
 
 #include "build_log.h"
-#include "build_log_generated.h"
+#include "log_generated.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@
 #include "metrics.h"
 #include "util.h"
 
-#include "build_log_schema.h"
+#include "log_schema.h"
 
 namespace ninja {
 
