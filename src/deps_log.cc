@@ -201,8 +201,7 @@ bool DepsLog::Load(const std::string& path, State* state, std::string* err) {
   for (;;) {
     offset = ftell(f);
 
-    if (fread(size_buffer, 1, sizeof(size_buffer), f) !=
-        sizeof(size_buffer)) {
+    if (fread(size_buffer, 1, sizeof(size_buffer), f) != sizeof(size_buffer)) {
       read_failed = !feof(f);
       break;
     }
@@ -247,13 +246,13 @@ bool DepsLog::Load(const std::string& path, State* state, std::string* err) {
         break;
       }
 
-      std::string_view path(deps_path->c_str(), deps_path->size());
       // It is not necessary to pass in a correct slash_bits here. It will
       // either be a Node that's in the manifest (in which case it will
       // already have a correct slash_bits that GetNode will look up), or it
       // is an implicit dependency from a .d which does not affect the build
       // command (and so need not have its slashes maintained).
-      Node* node = state->GetNode(path, 0);
+      Node* node = state->GetNode(
+          std::string_view(deps_path->c_str(), deps_path->size()), 0);
       int expected_id = ~deps_path_entry->checksum();
       int id = nodes_.size();
       if (id != expected_id) {
