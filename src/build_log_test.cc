@@ -60,7 +60,7 @@ TEST_F(BuildLogTest, WriteRead) {
   log1.Close();
 
   BuildLog log2;
-  EXPECT_TRUE(log2.Load(kTestFilename, &err));
+  EXPECT_TRUE(log2.Load(kTestFilename, &state_, &err));
   ASSERT_EQ("", err);
 
   ASSERT_EQ(2u, log1.entries().size());
@@ -132,7 +132,7 @@ TEST_F(BuildLogTest, DoubleEntry) {
   }
 
   BuildLog log;
-  EXPECT_TRUE(log.Load(kTestFilename, &err));
+  EXPECT_TRUE(log.Load(kTestFilename, &state_, &err));
   ASSERT_EQ("", err);
 
   BuildLog::LogEntry* e = log.LookupByOutput("out");
@@ -174,7 +174,7 @@ TEST_F(BuildLogTest, Truncate) {
 
     BuildLog log3;
     err.clear();
-    ASSERT_TRUE(log3.Load(kTestFilename, &err) || !err.empty());
+    ASSERT_TRUE(log3.Load(kTestFilename, &state_, &err) || !err.empty());
   }
 }
 
@@ -186,7 +186,7 @@ TEST_F(BuildLogTest, ObsoleteOldVersion) {
 
   std::string err;
   BuildLog log;
-  EXPECT_TRUE(log.Load(kTestFilename, &err));
+  EXPECT_TRUE(log.Load(kTestFilename, &state_, &err));
   ASSERT_NE(err.find("version"), std::string::npos);
 }
 
@@ -203,7 +203,7 @@ TEST_F(BuildLogTest, DuplicateVersionHeader) {
 
   std::string err;
   BuildLog log;
-  EXPECT_TRUE(log.Load(kTestFilename, &err));
+  EXPECT_TRUE(log.Load(kTestFilename, &state_, &err));
   EXPECT_NE(err.find("version"), std::string::npos);
   EXPECT_FALSE(fs::exists(kTestFilename));
 }
@@ -249,7 +249,7 @@ TEST_F(BuildLogRecompactTest, Recompact) {
 
   // Load...
   BuildLog log2;
-  EXPECT_TRUE(log2.Load(kTestFilename, &err));
+  EXPECT_TRUE(log2.Load(kTestFilename, &state_, &err));
   ASSERT_EQ("", err);
   ASSERT_EQ(2u, log2.entries().size());
   ASSERT_TRUE(log2.LookupByOutput("out"));
@@ -260,7 +260,7 @@ TEST_F(BuildLogRecompactTest, Recompact) {
 
   // "out2" is dead, it should've been removed.
   BuildLog log3;
-  EXPECT_TRUE(log2.Load(kTestFilename, &err));
+  EXPECT_TRUE(log2.Load(kTestFilename, &state_, &err));
   ASSERT_EQ("", err);
   ASSERT_EQ(1u, log2.entries().size());
   ASSERT_TRUE(log2.LookupByOutput("out"));

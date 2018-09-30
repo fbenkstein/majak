@@ -209,7 +209,7 @@ int ReadFlags(int* argc, char*** argv, Options* options, BuildConfig* config) {
     if (!ninja.EnsureBuildDirExists())
       exit(1);
 
-    if (!ninja.OpenBuildLog() || !ninja.OpenDepsLog())
+    if (!ninja.OpenBuildLog())
       exit(1);
 
     if (options.tool && options.tool->when == Tool::RUN_AFTER_LOGS)

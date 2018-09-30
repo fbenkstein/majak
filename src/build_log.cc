@@ -36,6 +36,7 @@
 #include "filesystem.h"
 #include "graph.h"
 #include "metrics.h"
+#include "state.h"
 #include "util.h"
 
 #include "log_schema.h"
@@ -48,6 +49,49 @@ namespace ninja {
 // older runs.
 // Once the number of redundant entries exceeds a threshold, we write
 // out a new file and replace the existing one with it.
+
+// As build commands run they can output extra dependency information
+// (e.g. header dependencies for C source) dynamically.  DepsLog collects
+// that information at build time and uses it for subsequent builds.
+//
+// The on-disk format is based on two primary design constraints:
+// - it must be written to as a stream (during the build, which may be
+//   interrupted);
+// - it can be read all at once on startup.  (Alternative designs, where
+//   it contains indexing information, were considered and discarded as
+//   too complicated to implement; if the file is small than reading it
+//   fully on startup is acceptable.)
+// Here are some stats from the Windows Chrome dependency files, to
+// help guide the design space.  The total text in the files sums to
+// 90mb so some compression is warranted to keep load-time fast.
+// There's about 10k files worth of dependencies that reference about
+// 40k total paths totalling 2mb of unique strings.
+//
+// Based on these stats, here's the current design.
+// The file is structured as version header followed by a sequence of records.
+// Each record is either a path string or a dependency list.
+// Numbering the path strings in file order gives them dense integer ids.
+// A dependency list maps an output id to a list of input ids.
+//
+// Concretely, a record is:
+//    four bytes record length, high bit indicates record type
+//      (but max record sizes are capped at 512kB)
+//    path records contain the string name of the path, followed by up to 3
+//      padding bytes to align on 4 byte boundaries, followed by the
+//      one's complement of the expected index of the record (to detect
+//      concurrent writes of multiple ninja processes to the log).
+//    dependency records are an array of 4-byte integers
+//      [output path id,
+//       output path mtime (lower 4 bytes), output path mtime (upper 4 bytes),
+//       input path id, input path id...]
+//      (The mtime is compared against the on-disk output path mtime
+//      to verify the stored data is up-to-date.)
+// If two records reference the same output the latter one in the file
+// wins, allowing updates to just be appended to the file.  A separate
+// repacking step can run occasionally to remove dead records.
+//
+// The above is almost accurate, except that we write log entries though
+// flatbuffers and not manually anymore.
 
 namespace {
 
@@ -98,12 +142,15 @@ inline uint64_t MurmurHash64A(const void* key, size_t len) {
 }
 #undef BIG_CONSTANT
 
+// Record size is currently limited to less than the full 32 bit, to
+// be able to control flushing manually.
+const unsigned kMaxRecordSize = (1 << 20) - 1;
 }  // namespace
 
 // static
 const char* const BuildLog::kFileSignature = "# majak log v1.%03d\n";
-const int BuildLog::kCurrentVersion = 1;
-const int BuildLog::kOldestSupportedVersion = 1;
+const int BuildLog::kCurrentVersion = 2;
+const int BuildLog::kOldestSupportedVersion = 2;
 const char* const BuildLog::kFilename = ".ninja_log";
 const char* const BuildLog::kSchema = kBuildLogSchema;
 
@@ -129,7 +176,9 @@ bool BuildLog::OpenForWrite(const std::string& path, const BuildLogUser& user,
     *err = strerror(errno);
     return false;
   }
-  setvbuf(log_file_, nullptr, _IOLBF, BUFSIZ);
+  // Set the buffer size to this and flush the file buffer after every record
+  // to make sure records aren't written partially.
+  setvbuf(log_file_, nullptr, _IOLBF, kMaxRecordSize);
   SetCloseOnExec(fileno(log_file_));
 
   // Opening a file in append mode doesn't set the file pointer to the file's
@@ -152,29 +201,116 @@ bool BuildLog::RecordCommand(Edge* edge, int start_time, int end_time,
   uint64_t command_hash = HashCommand(command);
   for (std::vector<Node*>::iterator out = edge->outputs_.begin();
        out != edge->outputs_.end(); ++out) {
-    const std::string& path = (*out)->path();
-    Entries::iterator i = entries_.find(path);
-    LogEntry* log_entry;
-    if (i != entries_.end()) {
-      log_entry = i->second;
-    } else {
-      log_entry = new LogEntry;
-      log_entry->output = path;
-      entries_.insert(Entries::value_type(log_entry->output, log_entry));
-    }
-    log_entry->command_hash = command_hash;
-    log_entry->start_time = start_time;
-    log_entry->end_time = end_time;
-    log_entry->mtime = mtime;
+    if (!RecordCommand((*out)->path(), command_hash, start_time, end_time,
+                       mtime))
+      return false;
+  }
 
-    if (log_file_) {
-      if (!WriteEntry(log_file_, *log_entry))
+  return true;
+}
+
+bool BuildLog::RecordCommand(const std::string& path, uint64_t command_hash,
+                             int start_time, int end_time, TimeStamp mtime) {
+  Entries::iterator i = entries_.find(path);
+  LogEntry* log_entry;
+  if (i != entries_.end()) {
+    log_entry = i->second;
+  } else {
+    log_entry = new LogEntry;
+    log_entry->output = path;
+    entries_.insert(Entries::value_type(log_entry->output, log_entry));
+  }
+  log_entry->command_hash = command_hash;
+  log_entry->start_time = start_time;
+  log_entry->end_time = end_time;
+  log_entry->mtime = mtime;
+
+  if (log_file_) {
+    if (!WriteEntry(log_file_, *log_entry))
+      return false;
+    if (fflush(log_file_) != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool BuildLog::RecordDeps(Node* node, TimeStamp mtime,
+                          const std::vector<Node*>& nodes) {
+  return RecordDeps(node, mtime, nodes.size(),
+                    nodes.empty() ? nullptr : (Node**)&nodes.front());
+}
+
+bool BuildLog::RecordDeps(Node* node, TimeStamp mtime, int node_count,
+                          Node** nodes) {
+  // Track whether there's any new data to be recorded.
+  bool made_change = false;
+
+  // Assign ids to all nodes that are missing one.
+  if (node->id() < 0) {
+    if (!RecordId(node))
+      return false;
+    made_change = true;
+  }
+  for (int i = 0; i < node_count; ++i) {
+    if (nodes[i]->id() < 0) {
+      if (!RecordId(nodes[i]))
         return false;
-      if (fflush(log_file_) != 0) {
-        return false;
+      made_change = true;
+    }
+  }
+
+  // See if the new data is different than the existing data, if any.
+  if (!made_change) {
+    Deps* deps = GetDeps(node);
+    if (!deps || deps->mtime != mtime || deps->node_count != node_count) {
+      made_change = true;
+    } else {
+      for (int i = 0; i < node_count; ++i) {
+        if (deps->nodes[i] != nodes[i]) {
+          made_change = true;
+          break;
+        }
       }
     }
   }
+
+  // Don't write anything if there's no new info.
+  if (!made_change)
+    return true;
+
+  log::EntryHolderT entry_holder;
+
+  {
+    log::DepsEntryT entry;
+    entry.output = node->id();
+    entry.mtime = mtime;
+    entry.deps.reserve(node_count);
+
+    for (int i = 0; i < node_count; ++i) {
+      entry.deps.push_back(nodes[i]->id());
+    }
+
+    entry_holder.entry.Set(std::move(entry));
+  }
+
+  fbb_.Clear();
+  auto offset = log::CreateEntryHolder(fbb_, &entry_holder);
+  fbb_.FinishSizePrefixed(offset);
+  assert(fbb_.GetSize() < kMaxRecordSize);
+  if (fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), log_file_) !=
+      fbb_.GetSize())
+    return false;
+
+  if (fflush(log_file_) != 0)
+    return false;
+
+  // Update in-memory representation.
+  Deps* deps = new Deps(mtime, node_count);
+  for (int i = 0; i < node_count; ++i)
+    deps->nodes[i] = nodes[i];
+  UpdateDeps(node->id(), deps);
+
   return true;
 }
 
@@ -184,7 +320,7 @@ void BuildLog::Close() {
   log_file_ = nullptr;
 }
 
-bool BuildLog::Load(const std::string& path, std::string* err) {
+bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
   METRIC_RECORD(".ninja_log load");
   FILE* file = fopen(path.c_str(), "rb");
   if (!file) {
@@ -217,15 +353,22 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
     return true;
   }
 
+  long offset;
+  bool read_failed = false;
   int unique_entry_count = 0;
   int total_entry_count = 0;
+  int unique_dep_record_count = 0;
+  int total_dep_record_count = 0;
 
   uint8_t size_buffer[sizeof(flatbuffers::uoffset_t)];
   std::vector<uint8_t> entry_buffer;
 
   for (;;) {
-    if (fread(size_buffer, 1, sizeof(size_buffer), file) !=
-        sizeof(size_buffer)) {
+    offset = ftell(file);
+
+    if (size_t bytes_read = fread(size_buffer, 1, sizeof(size_buffer), file);
+        bytes_read != sizeof(size_buffer)) {
+      read_failed = bytes_read != 0;
       break;
     }
 
@@ -234,52 +377,114 @@ bool BuildLog::Load(const std::string& path, std::string* err) {
     entry_buffer.resize(std::max(entry_buffer.size(), entry_size));
 
     if (fread(entry_buffer.data(), 1, entry_size, file) != entry_size) {
+      read_failed = true;
       break;
     }
 
-    auto* entry = flatbuffers::GetRoot<BuildLogEntry>(entry_buffer.data());
+    auto* entry_holder =
+        flatbuffers::GetRoot<log::EntryHolder>(entry_buffer.data());
 
     flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
-    if (!entry->Verify(verifier)) {
-        break;
-    }
 
-    if (!entry->output()) {
+    if (!entry_holder->Verify(verifier)) {
+      read_failed = true;
       break;
     }
 
-    std::string_view output(entry->output()->c_str(),
-                            entry->output()->Length());
+    if (auto build_entry = entry_holder->entry_as_BuildEntry()) {
+      std::string_view output(build_entry->output()->c_str(),
+                              build_entry->output()->Length());
 
-    Entries::iterator i = entries_.find(output);
-    LogEntry* log_entry;
+      Entries::iterator i = entries_.find(output);
+      LogEntry* log_entry;
 
-    if (i != entries_.end()) {
-      log_entry = i->second;
-    } else {
-      log_entry = new LogEntry;
-      log_entry->output = output;
-      entries_.insert(Entries::value_type(log_entry->output, log_entry));
-      ++unique_entry_count;
+      if (i != entries_.end()) {
+        log_entry = i->second;
+      } else {
+        log_entry = new LogEntry;
+        log_entry->output = output;
+        entries_.insert(Entries::value_type(log_entry->output, log_entry));
+        ++unique_entry_count;
+      }
+      ++total_entry_count;
+
+      log_entry->start_time = build_entry->start_time();
+      log_entry->end_time = build_entry->end_time();
+      log_entry->mtime = build_entry->mtime();
+      log_entry->command_hash = build_entry->command_hash();
+    } else if (auto path_entry = entry_holder->entry_as_PathEntry()) {
+      const flatbuffers::String* deps_path = path_entry->path();
+
+      // It is not necessary to pass in a correct slash_bits here. It will
+      // either be a Node that's in the manifest (in which case it will
+      // already have a correct slash_bits that GetNode will look up), or it
+      // is an implicit dependency from a .d which does not affect the build
+      // command (and so need not have its slashes maintained).
+      Node* node = state->GetNode(
+          std::string_view(deps_path->c_str(), deps_path->size()), 0);
+      int expected_id = ~path_entry->checksum();
+      int id = nodes_.size();
+      if (id != expected_id) {
+        read_failed = true;
+        break;
+      }
+
+      assert(node->id() < 0);
+      node->set_id(id);
+      nodes_.push_back(node);
+    } else if (auto deps_entry = entry_holder->entry_as_DepsEntry()) {
+      const auto& deps_data = *deps_entry->deps();
+      int deps_count = deps_data.size();
+      int out_id = deps_entry->output();
+      Deps* deps = new Deps(deps_entry->mtime(), deps_count);
+
+      for (int i = 0; i < deps_count; ++i) {
+        assert(deps_data[i] < nodes_.size());
+        assert(nodes_[deps_data[i]]);
+        deps->nodes[i] = nodes_[deps_data[i]];
+      }
+
+      total_dep_record_count++;
+      if (!UpdateDeps(out_id, deps))
+        ++unique_dep_record_count;
     }
-    ++total_entry_count;
-
-    log_entry->start_time = entry->start_time();
-    log_entry->end_time = entry->end_time();
-    log_entry->mtime = entry->mtime();
-    log_entry->command_hash = entry->command_hash();
   }
+
+  if (read_failed) {
+    // An error occurred while loading; try to recover by truncating the
+    // file to the last fully-read record.
+    if (ferror(file)) {
+      *err = strerror(ferror(file));
+    } else {
+      *err = "premature end of file";
+    }
+    fclose(file);
+
+    if (!Truncate(path, offset, err))
+      return false;
+
+    // The truncate succeeded; we'll just report the load error as a
+    // warning because the build can proceed.
+    *err += "; recovering";
+    return true;
+  }
+
   fclose(file);
 
   // Decide whether it's time to rebuild the log:
   // - if we're upgrading versions
   // - if it's getting large
   int kMinCompactionEntryCount = 100;
+  int kMinCompactionDepsEntryCount = 1000;
   int kCompactionRatio = 3;
   if (log_version < kCurrentVersion) {
     needs_recompaction_ = true;
   } else if (total_entry_count > kMinCompactionEntryCount &&
              total_entry_count > unique_entry_count * kCompactionRatio) {
+    needs_recompaction_ = true;
+  } else if (total_dep_record_count > kMinCompactionDepsEntryCount &&
+             total_dep_record_count >
+                 unique_dep_record_count * kCompactionRatio) {
     needs_recompaction_ = true;
   }
 
@@ -293,12 +498,24 @@ BuildLog::LogEntry* BuildLog::LookupByOutput(const std::string& path) {
   return nullptr;
 }
 
+BuildLog::Deps* BuildLog::GetDeps(Node* node) {
+  // Abort if the node has no id (never referenced in the deps) or if
+  // there's no deps recorded for the node.
+  if (node->id() < 0 || node->id() >= (int)deps_.size())
+    return nullptr;
+  return deps_[node->id()];
+}
+
 bool BuildLog::WriteEntry(FILE* f, const LogEntry& entry) {
+  log::EntryHolderT entry_holder;
+  entry_holder.entry.Set(LogEntry(entry));
   fbb_.Clear();
-  auto offset = CreateBuildLogEntry(fbb_, &entry);
+  auto offset = log::CreateEntryHolder(fbb_, &entry_holder);
   fbb_.FinishSizePrefixed(offset);
+  assert(fbb_.GetSize() < kMaxRecordSize);
   return fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), f) ==
-         fbb_.GetSize();
+             fbb_.GetSize() &&
+         fflush(f) == 0;
 }
 
 bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
@@ -307,36 +524,59 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
 
   Close();
   std::string temp_path = path + ".recompact";
-  FILE* f = fopen(temp_path.c_str(), "wb");
-  if (!f) {
-    *err = strerror(errno);
-    return false;
-  }
 
-  if (fprintf(f, kFileSignature, kCurrentVersion) < 0) {
-    *err = strerror(errno);
-    fclose(f);
-    return false;
-  }
+  // OpenForWrite() opens for append.  Make sure it's not appending to a
+  // left-over file from a previous recompaction attempt that crashed somehow.
+  unlink(temp_path.c_str());
 
-  std::vector<std::string_view> dead_outputs;
-  for (Entries::iterator i = entries_.begin(); i != entries_.end(); ++i) {
-    if (user.IsPathDead(i->first)) {
-      dead_outputs.push_back(i->first);
+  BuildLog new_log;
+
+  if (!new_log.OpenForWrite(temp_path, user, err))
+    return false;
+
+  // Write out all entries but skip dead paths.
+  for (const auto& [output, entry] : entries_) {
+    if (user.IsPathDead(output))
       continue;
-    }
 
-    if (!WriteEntry(f, *i->second)) {
+    if (!new_log.RecordCommand(entry->output, entry->command_hash,
+                               entry->start_time, entry->end_time,
+                               entry->mtime)) {
       *err = strerror(errno);
-      fclose(f);
+      unlink(temp_path.c_str());
       return false;
     }
   }
 
-  for (size_t i = 0; i < dead_outputs.size(); ++i)
-    entries_.erase(dead_outputs[i]);
+  // Clear all known ids so that new ones can be reassigned.  The new indices
+  // will refer to the ordering in new_log, not in the current log.
+  for (auto& node : nodes_)
+    node->set_id(-1);
 
-  fclose(f);
+  // Write out all deps again.
+  for (int old_id = 0; old_id < (int)deps_.size(); ++old_id) {
+    Deps* deps = deps_[old_id];
+    if (!deps)
+      continue;  // If nodes_[old_id] is a leaf, it has no deps.
+
+    if (!IsDepsEntryLiveFor(nodes_[old_id]))
+      continue;
+
+    if (!new_log.RecordDeps(nodes_[old_id], deps->mtime, deps->node_count,
+                            deps->nodes)) {
+      *err = strerror(errno);
+      unlink(temp_path.c_str());
+      return false;
+    }
+  }
+
+  new_log.Close();
+
+  // Steal the new log's data.
+  nodes_ = std::move(new_log.nodes_);
+  deps_ = std::move(new_log.deps_);
+  entries_ = std::move(new_log.entries_);
+
   if (unlink(path.c_str()) < 0) {
     *err = strerror(errno);
     return false;
@@ -350,15 +590,65 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
   return true;
 }
 
-bool operator==(const BuildLogEntryT& e1, const BuildLogEntryT& e2) {
-  auto to_tuple = [](const BuildLogEntryT& e) {
+bool BuildLog::UpdateDeps(int out_id, Deps* deps) {
+  if (out_id >= (int)deps_.size())
+    deps_.resize(out_id + 1);
+
+  bool delete_old = deps_[out_id] != nullptr;
+  if (delete_old)
+    delete deps_[out_id];
+  deps_[out_id] = deps;
+  return delete_old;
+}
+
+bool BuildLog::RecordId(Node* node) {
+  int id = nodes_.size();
+
+  log::EntryHolderT entry_holder;
+
+  {
+    log::PathEntryT entry;
+    entry.path = node->path();
+    entry.checksum = ~static_cast<uint32_t>(id);
+    entry_holder.entry.Set(std::move(entry));
+  }
+
+  fbb_.Clear();
+  auto offset = log::CreateEntryHolder(fbb_, &entry_holder);
+  fbb_.FinishSizePrefixed(offset);
+  assert(fbb_.GetSize() < kMaxRecordSize);
+  if (fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), log_file_) !=
+      fbb_.GetSize())
+    return false;
+
+  if (fflush(log_file_) != 0)
+    return false;
+
+  node->set_id(id);
+  nodes_.push_back(node);
+
+  return true;
+}
+
+bool BuildLog::IsDepsEntryLiveFor(Node* node) {
+  // Skip entries that don't have in-edges or whose edges don't have a
+  // "deps" attribute. They were in the deps log from previous builds, but
+  // the the files they were for were removed from the build and their deps
+  // entries are no longer needed.
+  // (Without the check for "deps", a chain of two or more nodes that each
+  // had deps wouldn't be collected in a single recompaction.)
+  return node->in_edge() && !node->in_edge()->GetBinding("deps").empty();
+}
+
+bool operator==(const log::BuildEntryT& e1, const log::BuildEntryT& e2) {
+  auto to_tuple = [](const auto& e) {
     return std::tie(e.output, e.command_hash, e.start_time, e.end_time,
                     e.mtime);
   };
   return to_tuple(e1) == to_tuple(e2);
 }
 
-bool operator!=(const BuildLogEntryT& e1, const BuildLogEntryT& e2) {
+bool operator!=(const log::BuildEntryT& e1, const log::BuildEntryT& e2) {
   return !(e1 == e2);
 }
 }  // namespace ninja

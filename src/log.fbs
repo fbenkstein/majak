@@ -1,6 +1,7 @@
-namespace ninja;
+namespace ninja.log;
 
-table BuildLogEntry {
+/// Record of an executed command.
+table BuildEntry {
   /// Name of the output.
   output:string (required);
   /// Hash off the command.
@@ -13,22 +14,28 @@ table BuildLogEntry {
   mtime:int64;
 }
 
-table DepsLogPath {
+/// Path entry.
+table PathEntry {
+  /// One's complement of expected id to detect parallel writes.
   checksum:uint32;
   path:string (required);
 }
 
-table DepsLogDeps {
+table DepsEntry {
+  /// Id of the output.
   output:uint32;
+  /// Timestamp of the output to check if deps are still valid.
   mtime:int64;
+  /// Ids of dependencies.
   deps:[uint32] (required);
 }
 
-union DepsLogEntryUnion {
-  DepsLogPath,
-  DepsLogDeps,
+union Entry {
+  BuildEntry,
+  PathEntry,
+  DepsEntry,
 }
 
-table DepsLogEntry {
-  value:DepsLogEntryUnion;
+table EntryHolder {
+  entry:Entry;
 }

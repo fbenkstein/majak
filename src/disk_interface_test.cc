@@ -147,7 +147,7 @@ TEST_F(DiskInterfaceTest, RemoveFile) {
 }
 
 struct StatTest : public StateTestWithBuiltinRules, public DiskInterface {
-  StatTest() : scan_(&state_, nullptr, nullptr, this) {}
+  StatTest() : scan_(&state_, nullptr, this) {}
 
   // DiskInterface implementation.
   virtual TimeStamp Stat(const std::string& path, std::string* err) const;

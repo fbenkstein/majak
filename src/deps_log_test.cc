@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "deps_log.h"
+#include "build_log.h"
 
 #include <sys/stat.h>
 #ifndef _WIN32
@@ -29,8 +29,9 @@ using namespace ninja;
 namespace {
 
 const char kTestFilename[] = "DepsLogTest-tempfile";
+using DepsLog = BuildLog;
 
-struct DepsLogTest : public testing::Test {
+struct DepsLogTest : public testing::Test, public BuildLogUser {
   void RemoveTestFile() {
     fs::error_code ignore;
     fs::remove(kTestFilename, ignore);
@@ -40,13 +41,14 @@ struct DepsLogTest : public testing::Test {
     RemoveTestFile();
   }
   virtual void TearDown() { RemoveTestFile(); }
+  virtual bool IsPathDead(std::string_view s) const { return false; }
 };
 
 TEST_F(DepsLogTest, WriteRead) {
   State state1;
   DepsLog log1;
   std::string err;
-  EXPECT_TRUE(log1.OpenForWrite(kTestFilename, &err));
+  EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
   ASSERT_EQ("", err);
 
   {
@@ -98,7 +100,7 @@ TEST_F(DepsLogTest, LotsOfDeps) {
   State state1;
   DepsLog log1;
   std::string err;
-  EXPECT_TRUE(log1.OpenForWrite(kTestFilename, &err));
+  EXPECT_TRUE(log1.OpenForWrite(kTestFilename, *this, &err));
   ASSERT_EQ("", err);
 
   {
@@ -133,7 +135,7 @@ TEST_F(DepsLogTest, DoubleEntry) {
     State state;
     DepsLog log;
     std::string err;
-    EXPECT_TRUE(log.OpenForWrite(kTestFilename, &err));
+    EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
 
     std::vector<Node*> deps;
@@ -155,7 +157,7 @@ TEST_F(DepsLogTest, DoubleEntry) {
     std::string err;
     EXPECT_TRUE(log.Load(kTestFilename, &state, &err));
 
-    EXPECT_TRUE(log.OpenForWrite(kTestFilename, &err));
+    EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
 
     std::vector<Node*> deps;
@@ -187,7 +189,7 @@ TEST_F(DepsLogTest, Recompact) {
     ASSERT_NO_FATAL_FAILURE(AssertParse(&state, kManifest));
     DepsLog log;
     std::string err;
-    ASSERT_TRUE(log.OpenForWrite(kTestFilename, &err));
+    ASSERT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
 
     std::vector<Node*> deps;
@@ -217,7 +219,7 @@ TEST_F(DepsLogTest, Recompact) {
     std::string err;
     ASSERT_TRUE(log.Load(kTestFilename, &state, &err));
 
-    ASSERT_TRUE(log.OpenForWrite(kTestFilename, &err));
+    ASSERT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
 
     std::vector<Node*> deps;
@@ -257,7 +259,7 @@ TEST_F(DepsLogTest, Recompact) {
     ASSERT_EQ("foo.h", deps->nodes[0]->path());
     ASSERT_EQ("baz.h", deps->nodes[1]->path());
 
-    ASSERT_TRUE(log.Recompact(kTestFilename, &err));
+    ASSERT_TRUE(log.Recompact(kTestFilename, *this, &err));
 
     // The in-memory deps graph should still be valid after recompaction.
     deps = log.GetDeps(out);
@@ -306,7 +308,7 @@ TEST_F(DepsLogTest, Recompact) {
     ASSERT_EQ("foo.h", deps->nodes[0]->path());
     ASSERT_EQ("baz.h", deps->nodes[1]->path());
 
-    ASSERT_TRUE(log.Recompact(kTestFilename, &err));
+    ASSERT_TRUE(log.Recompact(kTestFilename, *this, &err));
 
     // The previous entries should have been removed.
     deps = log.GetDeps(out);
@@ -349,7 +351,7 @@ TEST_F(DepsLogTest, InvalidHeader) {
     DepsLog log;
     State state;
     ASSERT_TRUE(log.Load(kTestFilename, &state, &err));
-    EXPECT_EQ("bad deps log signature or version; starting over", err);
+    ASSERT_NE(err.find("version"), std::string::npos);
   }
 }
 
@@ -360,7 +362,7 @@ TEST_F(DepsLogTest, Truncated) {
     State state;
     DepsLog log;
     std::string err;
-    EXPECT_TRUE(log.OpenForWrite(kTestFilename, &err));
+    EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
 
     std::vector<Node*> deps;
@@ -419,7 +421,7 @@ TEST_F(DepsLogTest, TruncatedRecovery) {
     State state;
     DepsLog log;
     std::string err;
-    EXPECT_TRUE(log.OpenForWrite(kTestFilename, &err));
+    EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
 
     std::vector<Node*> deps;
@@ -455,7 +457,7 @@ TEST_F(DepsLogTest, TruncatedRecovery) {
     // The truncated entry should've been discarded.
     EXPECT_EQ(nullptr, log.GetDeps(state.GetNode("out2.o", 0)));
 
-    EXPECT_TRUE(log.OpenForWrite(kTestFilename, &err));
+    EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
     ASSERT_EQ("", err);
 
     // Add a new entry.

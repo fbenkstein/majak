@@ -114,6 +114,7 @@ void BM_BuildLogLoad(benchmark::State& state) {
   std::string err;
   fs::error_code ec;
   fs::remove(kTestFilename, ec);
+  State ninja_state;
 
   if (!WriteTestData(&err)) {
     state.SkipWithError(("Failed to write test data: " + err).c_str());
@@ -123,7 +124,7 @@ void BM_BuildLogLoad(benchmark::State& state) {
   {
     // Read once to warm up disk cache.
     BuildLog log;
-    if (!log.Load(kTestFilename, &err)) {
+    if (!log.Load(kTestFilename, &ninja_state, &err)) {
       state.SkipWithError(("Failed to load test data: " + err).c_str());
       return;
     }
@@ -132,7 +133,7 @@ void BM_BuildLogLoad(benchmark::State& state) {
   for (auto _ : state) {
     auto start = now();
     BuildLog log;
-    if (!log.Load(kTestFilename, &err)) {
+    if (!log.Load(kTestFilename, &ninja_state, &err)) {
       state.SkipWithError(("Failed to load test data: " + err).c_str());
       return;
     }

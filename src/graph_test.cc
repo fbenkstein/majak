@@ -20,7 +20,7 @@
 using namespace ninja;
 
 struct GraphTest : public StateTestWithBuiltinRules {
-  GraphTest() : scan_(&state_, nullptr, nullptr, &fs_) {}
+  GraphTest() : scan_(&state_, nullptr, &fs_) {}
 
   VirtualFileSystem fs_;
   DependencyScan scan_;

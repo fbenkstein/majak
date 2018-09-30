@@ -16,7 +16,6 @@
 
 #include "build.h"
 #include "build_log.h"
-#include "deps_log.h"
 #include "disk_interface.h"
 #include "state.h"
 
@@ -71,7 +70,6 @@ struct NinjaMain : public BuildLogUser {
   std::string build_dir_;
 
   BuildLog build_log_;
-  DepsLog deps_log_;
 
   /// The type of functions that are the entry points to tools (subcommands).
   typedef int (NinjaMain::*ToolFunc)(const Options*, int, char**);
@@ -106,10 +104,6 @@ struct NinjaMain : public BuildLogUser {
   /// Open the build log.
   /// @return false on error.
   bool OpenBuildLog(bool recompact_only = false);
-
-  /// Open the deps log: load it, then open for writing.
-  /// @return false on error.
-  bool OpenDepsLog(bool recompact_only = false);
 
   /// Ensure the build directory exists, creating it if necessary.
   /// @return false on error.

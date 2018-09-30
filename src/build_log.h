@@ -20,14 +20,17 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "log_generated.h"
 #include "hash_map.h"
+#include "log_generated.h"
 #include "timestamp.h"
 #include "util.h"  // uint64_t
 
 namespace ninja {
 
 struct Edge;
+
+struct Node;
+struct State;
 
 /// Can answer questions about the manifest for the BuildLog.
 struct BuildLogUser {
@@ -53,21 +56,41 @@ struct BuildLog {
   BuildLog();
   ~BuildLog();
 
+  // Writing (build-time) interface.
   bool OpenForWrite(const std::string& path, const BuildLogUser& user,
                     std::string* err);
   bool RecordCommand(Edge* edge, int start_time, int end_time,
                      TimeStamp mtime = 0);
+  bool RecordDeps(Node* node, TimeStamp mtime, const std::vector<Node*>& nodes);
+  bool RecordDeps(Node* node, TimeStamp mtime, int node_count, Node** nodes);
   void Close();
 
-  /// Load the on-disk log.
-  bool Load(const std::string& path, std::string* err);
+  // Reading (startup-time) interface.
+  struct Deps {
+    Deps(int64_t mtime, int node_count)
+      : mtime(mtime), node_count(node_count), nodes(new Node*[node_count]) {}
+    ~Deps() { delete[] nodes; }
+    TimeStamp mtime;
+    int node_count;
+    Node** nodes;
+  };
+  bool Load(const std::string& path, State* state, std::string* err);
+  Deps* GetDeps(Node* node);
 
   static uint64_t HashCommand(std::string_view command);
 
-  using LogEntry = ninja::BuildLogEntryT;
+  using LogEntry = log::BuildEntryT;
 
   /// Lookup a previously-run command by its output path.
   LogEntry* LookupByOutput(const std::string& path);
+
+  /// Returns if the deps entry for a node is still reachable from the manifest.
+  ///
+  /// The deps log can contain deps entries for files that were built in the
+  /// past but are no longer part of the manifest.  This function returns if
+  /// this is the case for a given node.  This function is slow, don't call
+  /// it from code that runs on every build.
+  bool IsDepsEntryLiveFor(Node* node);
 
   /// Serialize an entry into a log file.
   bool WriteEntry(FILE* f, const LogEntry& entry);
@@ -79,15 +102,33 @@ struct BuildLog {
   typedef ExternalStringHashMap<LogEntry*>::Type Entries;
   const Entries& entries() const { return entries_; }
 
+  /// Used for tests and tools.
+  const std::vector<Node*>& nodes() const { return nodes_; }
+  const std::vector<Deps*>& deps() const { return deps_; }
+
  private:
+  // Updates the in-memory representation.  Takes ownership of |deps|.
+  // Returns true if a prior deps record was deleted.
+  bool UpdateDeps(int out_id, Deps* deps);
+  // Write a node name record, assigning it an id.
+  bool RecordId(Node* node);
+  // Write a command record.
+  bool RecordCommand(const std::string& path, uint64_t command_hash,
+                     int start_time, int end_time, TimeStamp mtime);
+
+  /// Maps id -> Node.
+  std::vector<Node*> nodes_;
+  /// Maps id -> deps of that id.
+  std::vector<Deps*> deps_;
+  /// Maps output name -> log entry.
   Entries entries_;
   FILE* log_file_;
   bool needs_recompaction_;
   flatbuffers::FlatBufferBuilder fbb_;
 };
 
-bool operator==(const BuildLogEntryT& e1, const BuildLogEntryT& e2);
-bool operator!=(const BuildLogEntryT& e1, const BuildLogEntryT& e2);
+bool operator==(const log::BuildEntryT& e1, const log::BuildEntryT& e2);
+bool operator!=(const log::BuildEntryT& e1, const log::BuildEntryT& e2);
 
 }  // namespace ninja
 

@@ -37,7 +37,6 @@
 #include "build_log.h"
 #include "clean.h"
 #include "debug_flags.h"
-#include "deps_log.h"
 #include "disk_interface.h"
 #include "graph.h"
 #include "graphviz.h"
@@ -92,7 +91,7 @@ bool NinjaMain::RebuildManifest(const char* input_file, std::string* err) {
   if (!node)
     return false;
 
-  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(&state_, config_, &build_log_, &disk_interface_);
   if (!builder.AddTarget(node, err))
     return false;
 
@@ -326,9 +325,9 @@ int ToolTargetsList(State* state) {
 int NinjaMain::ToolDeps(const Options* options, int argc, char** argv) {
   std::vector<Node*> nodes;
   if (argc == 0) {
-    for (std::vector<Node*>::const_iterator ni = deps_log_.nodes().begin();
-         ni != deps_log_.nodes().end(); ++ni) {
-      if (deps_log_.IsDepsEntryLiveFor(*ni))
+    for (std::vector<Node*>::const_iterator ni = build_log_.nodes().begin();
+         ni != build_log_.nodes().end(); ++ni) {
+      if (build_log_.IsDepsEntryLiveFor(*ni))
         nodes.push_back(*ni);
     }
   } else {
@@ -342,7 +341,7 @@ int NinjaMain::ToolDeps(const Options* options, int argc, char** argv) {
   RealDiskInterface disk_interface;
   for (std::vector<Node*>::iterator it = nodes.begin(), end = nodes.end();
        it != end; ++it) {
-    DepsLog::Deps* deps = deps_log_.GetDeps(*it);
+    BuildLog::Deps* deps = build_log_.GetDeps(*it);
     if (!deps) {
       printf("%s: deps not found\n", (*it)->path().c_str());
       continue;
@@ -611,8 +610,7 @@ int NinjaMain::ToolRecompact(const Options* options, int argc, char* argv[]) {
   if (!EnsureBuildDirExists())
     return 1;
 
-  if (!OpenBuildLog(/*recompact_only=*/true) ||
-      !OpenDepsLog(/*recompact_only=*/true))
+  if (!OpenBuildLog(/*recompact_only=*/true))
     return 1;
 
   return 0;
@@ -754,7 +752,7 @@ bool NinjaMain::OpenBuildLog(bool recompact_only) {
     log_path = build_dir_ + "/" + log_path;
 
   std::string err;
-  if (!build_log_.Load(log_path, &err)) {
+  if (!build_log_.Load(log_path, &state_, &err)) {
     Error("loading build log %s: %s", log_path.c_str(), err.c_str());
     return false;
   }
@@ -774,41 +772,6 @@ bool NinjaMain::OpenBuildLog(bool recompact_only) {
   if (!config_.dry_run) {
     if (!build_log_.OpenForWrite(log_path, *this, &err)) {
       Error("opening build log: %s", err.c_str());
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/// Open the deps log: load it, then open for writing.
-/// @return false on error.
-bool NinjaMain::OpenDepsLog(bool recompact_only) {
-  std::string path = ".ninja_deps";
-  if (!build_dir_.empty())
-    path = build_dir_ + "/" + path;
-
-  std::string err;
-  if (!deps_log_.Load(path, &state_, &err)) {
-    Error("loading deps log %s: %s", path.c_str(), err.c_str());
-    return false;
-  }
-  if (!err.empty()) {
-    // Hack: Load() can return a warning via err by returning true.
-    Warning("%s", err.c_str());
-    err.clear();
-  }
-
-  if (recompact_only) {
-    bool success = deps_log_.Recompact(path, &err);
-    if (!success)
-      Error("failed recompaction: %s", err.c_str());
-    return success;
-  }
-
-  if (!config_.dry_run) {
-    if (!deps_log_.OpenForWrite(path, &err)) {
-      Error("opening deps log: %s", err.c_str());
       return false;
     }
   }
@@ -846,7 +809,7 @@ int NinjaMain::RunBuild(int argc, char** argv, bool source_dwim) {
     return 1;
   }
 
-  Builder builder(&state_, config_, &build_log_, &deps_log_, &disk_interface_);
+  Builder builder(&state_, config_, &build_log_, &disk_interface_);
   for (size_t i = 0; i < targets.size(); ++i) {
     if (!builder.AddTarget(targets[i], &err)) {
       if (!err.empty()) {

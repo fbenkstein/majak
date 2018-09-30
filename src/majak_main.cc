@@ -223,7 +223,7 @@ int CommandBuild(const char* working_dir, int argc, char** argv) {
     if (!ninja.EnsureBuildDirExists())
       exit(1);
 
-    if (!ninja.OpenBuildLog() || !ninja.OpenDepsLog())
+    if (!ninja.OpenBuildLog())
       exit(1);
 
     // Attempt to rebuild the manifest before building anything else

@@ -34,7 +34,6 @@
 #include "clparser.h"
 #include "debug_flags.h"
 #include "depfile_parser.h"
-#include "deps_log.h"
 #include "disk_interface.h"
 #include "graph.h"
 #include "state.h"
@@ -564,9 +563,9 @@ bool RealCommandRunner::WaitForCommand(Result* result) {
 }
 
 Builder::Builder(State* state, const BuildConfig& config, BuildLog* build_log,
-                 DepsLog* deps_log, DiskInterface* disk_interface)
+                 DiskInterface* disk_interface)
     : state_(state), config_(config), disk_interface_(disk_interface),
-      scan_(state, build_log, deps_log, disk_interface) {
+      scan_(state, build_log, disk_interface) {
   status_ = new BuildStatus(config);
 }
 
@@ -866,7 +865,7 @@ bool Builder::FinishCommand(CommandRunner::Result* result, std::string* err) {
     TimeStamp deps_mtime = disk_interface_->Stat(out->path(), err);
     if (deps_mtime == -1)
       return false;
-    if (!scan_.deps_log()->RecordDeps(out, deps_mtime, deps_nodes)) {
+    if (!scan_.build_log()->RecordDeps(out, deps_mtime, deps_nodes)) {
       *err = std::string("Error writing to deps log: ") + strerror(errno);
       return false;
     }

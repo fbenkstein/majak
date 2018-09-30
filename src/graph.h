@@ -195,16 +195,16 @@ struct Edge {
 /// ImplicitDepLoader loads implicit dependencies, as referenced via the
 /// "depfile" attribute in build files.
 struct ImplicitDepLoader {
-  ImplicitDepLoader(State* state, DepsLog* deps_log,
+  ImplicitDepLoader(State* state, BuildLog* build_log,
                     DiskInterface* disk_interface)
-      : state_(state), disk_interface_(disk_interface), deps_log_(deps_log) {}
+      : state_(state), disk_interface_(disk_interface), build_log_(build_log) {}
 
   /// Load implicit dependencies for \a edge.
   /// @return false on error (without filling \a err if info is just missing
   //                          or out of date).
   bool LoadDeps(Edge* edge, std::string* err);
 
-  DepsLog* deps_log() const { return deps_log_; }
+  BuildLog* build_log() const { return build_log_; }
 
  private:
   /// Load implicit dependencies for \a edge from a depfile attribute.
@@ -226,16 +226,16 @@ struct ImplicitDepLoader {
 
   State* state_;
   DiskInterface* disk_interface_;
-  DepsLog* deps_log_;
+  BuildLog* build_log_;
 };
 
 /// DependencyScan manages the process of scanning the files in a graph
 /// and updating the dirty/outputs_ready state of all the nodes and edges.
 struct DependencyScan {
-  DependencyScan(State* state, BuildLog* build_log, DepsLog* deps_log,
+  DependencyScan(State* state, BuildLog* build_log,
                  DiskInterface* disk_interface)
       : build_log_(build_log), disk_interface_(disk_interface),
-        dep_loader_(state, deps_log, disk_interface) {}
+        dep_loader_(state, build_log, disk_interface) {}
 
   /// Update the |dirty_| state of the given node by inspecting its input edge.
   /// Examine inputs, outputs, and command lines to judge whether an edge
@@ -251,8 +251,6 @@ struct DependencyScan {
 
   BuildLog* build_log() const { return build_log_; }
   void set_build_log(BuildLog* log) { build_log_ = log; }
-
-  DepsLog* deps_log() const { return dep_loader_.deps_log(); }
 
  private:
   bool RecomputeDirty(Node* node, std::vector<Node*>* stack, std::string* err);

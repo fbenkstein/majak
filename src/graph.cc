@@ -20,7 +20,6 @@
 #include "build_log.h"
 #include "debug_flags.h"
 #include "depfile_parser.h"
-#include "deps_log.h"
 #include "disk_interface.h"
 #include "manifest_parser.h"
 #include "metrics.h"
@@ -538,7 +537,7 @@ bool ImplicitDepLoader::LoadDepFile(Edge* edge, const std::string& path,
 bool ImplicitDepLoader::LoadDepsFromLog(Edge* edge, std::string* err) {
   // NOTE: deps are only supported for single-target edges.
   Node* output = edge->outputs_[0];
-  DepsLog::Deps* deps = deps_log_->GetDeps(output);
+  BuildLog::Deps* deps = build_log_->GetDeps(output);
   if (!deps) {
     EXPLAIN("deps for '%s' are missing", output->path().c_str());
     return false;

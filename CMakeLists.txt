@@ -121,7 +121,6 @@ set(
     src/clean.cc
     src/clparser.cc
     src/debug_flags.cc
-    src/deps_log.cc
     src/disk_interface.cc
     src/eval_env.cc
     src/graph.cc
