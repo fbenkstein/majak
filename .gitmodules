@@ -11,3 +11,6 @@
 [submodule "ext/lua-argparse"]
 	path = ext/lua-argparse
 	url = https://github.com/mpeterv/argparse.git
+[submodule "ext/abseil"]
+	path = ext/abseil
+	url = https://github.com/abseil/abseil-cpp.git
