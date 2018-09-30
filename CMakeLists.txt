@@ -109,6 +109,8 @@ set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(FLATBUFFERS_LIBCXX_WITH_CLANG OFF CACHE BOOL "" FORCE)
 add_subdirectory(ext/flatbuffers EXCLUDE_FROM_ALL)
 
+add_subdirectory(ext/abseil EXCLUDE_FROM_ALL)
+
 if (MSVC)
     fix_default_msvc_settings()
 endif()
