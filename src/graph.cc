@@ -324,7 +324,7 @@ std::string EdgeEnv::LookupVariable(const std::string& var) {
       for (; it != lookups_.end(); ++it)
         cycle.append(*it + " -> ");
       cycle.append(var);
-      Fatal(("cycle in rule variables: " + cycle).c_str());
+      Fatal("cycle in rule variables: %s", + cycle.c_str());
     }
   }
 

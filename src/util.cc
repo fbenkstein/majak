@@ -57,43 +57,6 @@
 #include "metrics.h"
 
 namespace ninja {
-
-void Fatal(const char* msg, ...) {
-  va_list ap;
-  fprintf(stderr, "ninja: fatal: ");
-  va_start(ap, msg);
-  vfprintf(stderr, msg, ap);
-  va_end(ap);
-  fprintf(stderr, "\n");
-#ifdef _WIN32
-  // On Windows, some tools may inject extra threads.
-  // exit() may block on locks held by those threads, so forcibly exit.
-  fflush(stderr);
-  fflush(stdout);
-  ExitProcess(1);
-#else
-  exit(1);
-#endif
-}
-
-void Warning(const char* msg, ...) {
-  va_list ap;
-  fprintf(stderr, "ninja: warning: ");
-  va_start(ap, msg);
-  vfprintf(stderr, msg, ap);
-  va_end(ap);
-  fprintf(stderr, "\n");
-}
-
-void Error(const char* msg, ...) {
-  va_list ap;
-  fprintf(stderr, "ninja: error: ");
-  va_start(ap, msg);
-  vfprintf(stderr, msg, ap);
-  va_end(ap);
-  fprintf(stderr, "\n");
-}
-
 bool CanonicalizePath(std::string* path, uint64_t* slash_bits,
                       std::string* err) {
   METRIC_RECORD("canonicalize str");

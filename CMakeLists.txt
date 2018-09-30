@@ -39,6 +39,11 @@ else()
     )
 endif()
 
+if (MSVC)
+    # required for abseil
+    add_definitions(-D_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING)
+endif()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_VERSION VERSION_GREATER "3.12")
     set(ninja_shared_for_tests_default ON)
 else()
@@ -129,6 +134,7 @@ set(
     src/graphviz.cc
     src/line_printer.cc
     src/manifest_parser.cc
+    src/message.cc
     src/metrics.cc
     src/ninja.cc
     src/state.cc
@@ -356,7 +362,9 @@ add_library(libninja-config INTERFACE)
 target_compile_options(libninja-config INTERFACE ${ninja_compile_options})
 target_compile_definitions(libninja-config INTERFACE ${ninja_compile_definitions})
 target_include_directories(libninja-config INTERFACE "${CMAKE_CURRENT_BINARY_DIR}" ext/flatbuffers/include)
-target_link_libraries(libninja-config INTERFACE flatbuffers "${NINJA_FILESYSTEM_LIBRARY}")
+target_link_libraries(libninja-config INTERFACE flatbuffers absl::strings "${NINJA_FILESYSTEM_LIBRARY}")
+# TODO: this seems to be a bug in abseil's CMake
+target_link_libraries(libninja-config INTERFACE str_format_internal)
 
 if (NINJA_SHARED_FOR_TESTS)
     add_library(libninja-objects OBJECT ${ninja_sources})
@@ -400,6 +408,7 @@ if (NINJA_BUILD_TESTS)
         src/graph_test.cc
         src/lexer_test.cc
         src/manifest_parser_test.cc
+        src/message_test.cc
         src/state_test.cc
         src/string_piece_util_test.cc
         src/subprocess_test.cc

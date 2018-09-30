@@ -15,16 +15,9 @@
 #ifndef NINJA_EXPLAIN_H_
 #define NINJA_EXPLAIN_H_
 
-#include <stdio.h>
-
-#define EXPLAIN(fmt, ...)                                       \
-  {                                                             \
-    if (g_explaining)                                           \
-      fprintf(stderr, "ninja explain: " fmt "\n", __VA_ARGS__); \
-  }
+#include "message.h"
 
 namespace ninja {
-
 extern bool g_explaining;
 
 extern bool g_keep_depfile;
@@ -33,6 +26,11 @@ extern bool g_keep_rsp;
 
 extern bool g_experimental_statcache;
 
+template <class... Args>
+void EXPLAIN(const absl::FormatSpec<Args...>& format, const Args&... args) {
+  if (g_explaining)
+    Message(MessageType::kExplain, absl::StrFormat(format, args...));
+}
 }  // namespace ninja
 
 #endif  // NINJA_EXPLAIN_H_

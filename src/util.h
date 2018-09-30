@@ -19,17 +19,9 @@
 #include <string>
 #include <vector>
 
+#include "message.h"
+
 namespace ninja {
-
-/// Log a fatal message and exit.
-[[noreturn]] void Fatal(const char* msg, ...);
-
-/// Log a warning message.
-void Warning(const char* msg, ...);
-
-/// Log an error message.
-void Error(const char* msg, ...);
-
 /// Canonicalize a path like "foo/../bar.h" into just "bar.h".
 /// |slash_bits| has bits set starting from lowest for a backslash that was
 /// normalized to a forward slash. (only used on Windows)
