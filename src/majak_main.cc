@@ -308,12 +308,8 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
   idl_options.indent_step = -1;
   flatbuffers::Parser parser(idl_options);
 
-  if (!parser.Parse(BuildLog::kSchema)) {
+  if (!parser.Parse(BuildLog::kSchema) || !parser.SetRootType("EntryHolder"))
     Fatal("invalid schema");
-  }
-
-  if (!parser.SetRootType("BuildLogEntry")) {
-  }
 
   std::string output;
   uint8_t size_buffer[sizeof(flatbuffers::uoffset_t)];
@@ -331,6 +327,15 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
 
     if (fread(entry_buffer.data(), 1, entry_size, file) != entry_size) {
       break;
+    }
+
+    auto* entry_holder =
+        flatbuffers::GetRoot<log::EntryHolder>(entry_buffer.data());
+
+    flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
+
+    if (!entry_holder->Verify(verifier)) {
+        Fatal("failed to verify entry");
     }
 
     if (flatbuffers::GenerateText(parser, entry_buffer.data(), &output)) {
