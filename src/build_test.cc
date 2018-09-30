@@ -2121,7 +2121,11 @@ TEST_F(BuildWithDepsLogTest, DepFileOKDepsLog) {
 }
 
 #ifdef _WIN32
-TEST_F(BuildWithDepsLogTest, DepFileDepsLogCanonicalize) {
+TEST_F(BuildWithDepsLogTest, DepFileDepsLogCanonicalize)
+#else
+TEST_F(BuildWithDepsLogTest, DISABLED_DepFileDepsLogCanonicalize)
+#endif
+{
   std::string err;
   const char* manifest =
       "rule cc\n  command = cc $in\n  depfile = $out.d\n  deps = gcc\n"
@@ -2134,11 +2138,11 @@ TEST_F(BuildWithDepsLogTest, DepFileDepsLogCanonicalize) {
     ASSERT_NO_FATAL_FAILURE(AssertParse(&state, manifest));
 
     // Run the build once, everything should be ok.
-    DepsLog deps_log;
-    ASSERT_TRUE(deps_log.OpenForWrite("ninja_deps", &err));
+    BuildLog build_log;
+    ASSERT_TRUE(build_log.OpenForWrite("ninja_deps", *this, &err));
     ASSERT_EQ("", err);
 
-    Builder builder(&state, config_, nullptr, &deps_log, &fs_);
+    Builder builder(&state, config_, &build_log, &fs_);
     builder.command_runner_.reset(&command_runner_);
     EXPECT_TRUE(builder.AddTarget("a/b/c/d/e/fo o.o", &err));
     ASSERT_EQ("", err);
@@ -2148,7 +2152,7 @@ TEST_F(BuildWithDepsLogTest, DepFileDepsLogCanonicalize) {
     EXPECT_TRUE(builder.Build(&err));
     EXPECT_EQ("", err);
 
-    deps_log.Close();
+    build_log.Close();
     builder.command_runner_.release();
   }
 
@@ -2156,12 +2160,12 @@ TEST_F(BuildWithDepsLogTest, DepFileDepsLogCanonicalize) {
     State state;
     ASSERT_NO_FATAL_FAILURE(AssertParse(&state, manifest));
 
-    DepsLog deps_log;
-    ASSERT_TRUE(deps_log.Load("ninja_deps", &state, &err));
-    ASSERT_TRUE(deps_log.OpenForWrite("ninja_deps", &err));
+    BuildLog build_log;
+    ASSERT_TRUE(build_log.Load("ninja_deps", &state, &err));
+    ASSERT_TRUE(build_log.OpenForWrite("ninja_deps", *this, &err));
     ASSERT_EQ("", err);
 
-    Builder builder(&state, config_, nullptr, &deps_log, &fs_);
+    Builder builder(&state, config_, &build_log, &fs_);
     builder.command_runner_.reset(&command_runner_);
 
     Edge* edge = state.edges_.back();
@@ -2180,11 +2184,10 @@ TEST_F(BuildWithDepsLogTest, DepFileDepsLogCanonicalize) {
     // Note, slashes from manifest, not .d.
     ASSERT_EQ("cc x\\y/z\\foo.c", edge->EvaluateCommand());
 
-    deps_log.Close();
+    build_log.Close();
     builder.command_runner_.release();
   }
 }
-#endif
 
 /// Check that a restat rule doesn't clear an edge if the depfile is missing.
 /// Follows from: https://github.com/ninja-build/ninja/issues/603
