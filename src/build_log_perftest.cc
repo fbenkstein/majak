@@ -100,7 +100,7 @@ bool WriteTestData(std::string* err) {
     return false;
 
   for (int i = 0; i < kNumCommands; ++i) {
-    log.RecordCommand(state.edges_[i],
+    log.RecordCommand(state.edges_[i].get(),
                       /*start_time=*/100 * i,
                       /*end_time=*/100 * i + 1,
                       /*mtime=*/0);

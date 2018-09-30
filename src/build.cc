@@ -566,7 +566,7 @@ Builder::Builder(State* state, const BuildConfig& config, BuildLog* build_log,
                  DiskInterface* disk_interface)
     : state_(state), config_(config), disk_interface_(disk_interface),
       scan_(state, build_log, disk_interface) {
-  status_ = new BuildStatus(config);
+  status_ = std::make_unique<BuildStatus>(config);
 }
 
 Builder::~Builder() {

@@ -99,17 +99,17 @@ struct BuildLog {
   bool Recompact(const std::string& path, const BuildLogUser& user,
                  std::string* err);
 
-  typedef ExternalStringHashMap<LogEntry*>::Type Entries;
+  typedef ExternalStringHashMap<std::unique_ptr<LogEntry>>::Type Entries;
   const Entries& entries() const { return entries_; }
 
   /// Used for tests and tools.
   const std::vector<Node*>& nodes() const { return nodes_; }
-  const std::vector<Deps*>& deps() const { return deps_; }
+  const std::vector<std::unique_ptr<Deps>>& deps() const { return deps_; }
 
  private:
   // Updates the in-memory representation.  Takes ownership of |deps|.
   // Returns true if a prior deps record was deleted.
-  bool UpdateDeps(int out_id, Deps* deps);
+  bool UpdateDeps(int out_id, std::unique_ptr<Deps> deps);
   // Write a node name record, assigning it an id.
   bool RecordId(Node* node);
   // Write a command record.
@@ -119,7 +119,7 @@ struct BuildLog {
   /// Maps id -> Node.
   std::vector<Node*> nodes_;
   /// Maps id -> deps of that id.
-  std::vector<Deps*> deps_;
+  std::vector<std::unique_ptr<Deps>> deps_;
   /// Maps output name -> log entry.
   Entries entries_;
   FILE* log_file_;

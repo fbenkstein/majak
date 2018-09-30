@@ -187,7 +187,7 @@ struct Builder {
   const BuildConfig& config_;
   Plan plan_;
   std::unique_ptr<CommandRunner> command_runner_;
-  BuildStatus* status_;
+  std::unique_ptr<BuildStatus> status_;
 
  private:
   bool ExtractDeps(CommandRunner::Result* result, const std::string& deps_type,

@@ -276,12 +276,10 @@ int ToolTargetsList(const std::vector<Node*>& nodes, int depth, int indent) {
 }
 
 int ToolTargetsSourceList(State* state) {
-  for (std::vector<Edge*>::iterator e = state->edges_.begin();
-       e != state->edges_.end(); ++e) {
-    for (std::vector<Node*>::iterator inps = (*e)->inputs_.begin();
-         inps != (*e)->inputs_.end(); ++inps) {
-      if (!(*inps)->in_edge())
-        printf("%s\n", (*inps)->path().c_str());
+  for (const auto& e : state->edges_) {
+    for (const auto& inps : e->inputs_) {
+      if (!inps->in_edge())
+        printf("%s\n", inps->path().c_str());
     }
   }
   return 0;
@@ -291,12 +289,10 @@ int ToolTargetsList(State* state, const std::string& rule_name) {
   std::set<std::string> rules;
 
   // Gather the outputs.
-  for (std::vector<Edge*>::iterator e = state->edges_.begin();
-       e != state->edges_.end(); ++e) {
-    if ((*e)->rule_->name() == rule_name) {
-      for (std::vector<Node*>::iterator out_node = (*e)->outputs_.begin();
-           out_node != (*e)->outputs_.end(); ++out_node) {
-        rules.insert((*out_node)->path());
+  for (const auto& e : state->edges_) {
+    if (e->rule_->name() == rule_name) {
+      for (const auto& out_node : e->outputs_) {
+        rules.insert(out_node->path());
       }
     }
   }
@@ -311,12 +307,9 @@ int ToolTargetsList(State* state, const std::string& rule_name) {
 }
 
 int ToolTargetsList(State* state) {
-  for (std::vector<Edge*>::iterator e = state->edges_.begin();
-       e != state->edges_.end(); ++e) {
-    for (std::vector<Node*>::iterator out_node = (*e)->outputs_.begin();
-         out_node != (*e)->outputs_.end(); ++out_node) {
-      printf("%s: %s\n", (*out_node)->path().c_str(),
-             (*e)->rule_->name().c_str());
+  for (const auto& e : state->edges_) {
+    for (const auto& out_node : e->outputs_) {
+      printf("%s: %s\n", out_node->path().c_str(), e->rule_->name().c_str());
     }
   }
   return 0;
@@ -578,23 +571,22 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
   }
 
   putchar('[');
-  for (std::vector<Edge*>::iterator e = state_.edges_.begin();
-       e != state_.edges_.end(); ++e) {
-    if ((*e)->inputs_.empty())
+  for (const auto& e : state_.edges_) {
+    if (e->inputs_.empty())
       continue;
     for (int i = 0; i != argc; ++i) {
-      if ((*e)->rule_->name() == argv[i]) {
+      if (e->rule_->name() == argv[i]) {
         if (!first)
           putchar(',');
 
         printf("\n  {\n    \"directory\": \"");
         EncodeJSONString(&cwd[0]);
         printf("\",\n    \"command\": \"");
-        EncodeJSONString(EvaluateCommandWithRspfile(*e, eval_mode).c_str());
+        EncodeJSONString(EvaluateCommandWithRspfile(e.get(), eval_mode).c_str());
         printf("\",\n    \"file\": \"");
-        EncodeJSONString((*e)->inputs_[0]->path().c_str());
+        EncodeJSONString(e->inputs_[0]->path().c_str());
         printf("\",\n    \"output\": \"");
-        EncodeJSONString((*e)->outputs_[0]->path().c_str());
+        EncodeJSONString(e->outputs_[0]->path().c_str());
         printf("\"\n  }");
 
         first = false;

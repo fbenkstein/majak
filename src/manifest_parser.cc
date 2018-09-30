@@ -164,7 +164,7 @@ bool ManifestParser::ParseRule(std::string* err) {
   if (env_->LookupRuleCurrentScope(name) != nullptr)
     return lexer_.Error("duplicate rule '" + name + "'", err);
 
-  Rule* rule = new Rule(name);  // XXX scoped_ptr
+  auto rule = std::make_unique<Rule>(name);
 
   while (lexer_.PeekToken(Lexer::INDENT)) {
     std::string key;
@@ -192,7 +192,7 @@ bool ManifestParser::ParseRule(std::string* err) {
   if (rule->bindings_["command"].empty())
     return lexer_.Error("expected 'command =' line", err);
 
-  env_->AddRule(rule);
+  env_->AddRule(std::move(rule));
   return true;
 }
 
@@ -372,7 +372,6 @@ bool ManifestParser::ParseEdge(std::string* err) {
     // All outputs of the edge are already created by other edges. Don't add
     // this edge.  Do this check before input nodes are connected to the edge.
     state_->edges_.pop_back();
-    delete edge;
     return true;
   }
   edge->implicit_outs_ = implicit_outs;

@@ -214,11 +214,13 @@ bool BuildLog::RecordCommand(const std::string& path, uint64_t command_hash,
   Entries::iterator i = entries_.find(path);
   LogEntry* log_entry;
   if (i != entries_.end()) {
-    log_entry = i->second;
+    log_entry = i->second.get();
   } else {
-    log_entry = new LogEntry;
+    auto owned_log_entry = std::make_unique<LogEntry>();
+    log_entry = owned_log_entry.get();
     log_entry->output = path;
-    entries_.insert(Entries::value_type(log_entry->output, log_entry));
+    entries_.insert(
+        Entries::value_type(log_entry->output, std::move(owned_log_entry)));
   }
   log_entry->command_hash = command_hash;
   log_entry->start_time = start_time;
@@ -306,10 +308,10 @@ bool BuildLog::RecordDeps(Node* node, TimeStamp mtime, int node_count,
     return false;
 
   // Update in-memory representation.
-  Deps* deps = new Deps(mtime, node_count);
+  auto deps = std::make_unique<Deps>(mtime, node_count);
   for (int i = 0; i < node_count; ++i)
     deps->nodes[i] = nodes[i];
-  UpdateDeps(node->id(), deps);
+  UpdateDeps(node->id(), std::move(deps));
 
   return true;
 }
@@ -399,11 +401,13 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
       LogEntry* log_entry;
 
       if (i != entries_.end()) {
-        log_entry = i->second;
+        log_entry = i->second.get();
       } else {
-        log_entry = new LogEntry;
+        auto owned_log_entry = std::make_unique<LogEntry>();
+        log_entry = owned_log_entry.get();
         log_entry->output = output;
-        entries_.insert(Entries::value_type(log_entry->output, log_entry));
+        entries_.insert(
+            Entries::value_type(log_entry->output, std::move(owned_log_entry)));
         ++unique_entry_count;
       }
       ++total_entry_count;
@@ -436,7 +440,7 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
       const auto& deps_data = *deps_entry->deps();
       int deps_count = deps_data.size();
       int out_id = deps_entry->output();
-      Deps* deps = new Deps(deps_entry->mtime(), deps_count);
+      auto deps = std::make_unique<Deps>(deps_entry->mtime(), deps_count);
 
       for (int i = 0; i < deps_count; ++i) {
         assert(deps_data[i] < nodes_.size());
@@ -445,7 +449,7 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
       }
 
       total_dep_record_count++;
-      if (!UpdateDeps(out_id, deps))
+      if (!UpdateDeps(out_id, std::move(deps)))
         ++unique_dep_record_count;
     }
   }
@@ -494,7 +498,7 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
 BuildLog::LogEntry* BuildLog::LookupByOutput(const std::string& path) {
   Entries::iterator i = entries_.find(path);
   if (i != entries_.end())
-    return i->second;
+    return i->second.get();
   return nullptr;
 }
 
@@ -503,7 +507,7 @@ BuildLog::Deps* BuildLog::GetDeps(Node* node) {
   // there's no deps recorded for the node.
   if (node->id() < 0 || node->id() >= (int)deps_.size())
     return nullptr;
-  return deps_[node->id()];
+  return deps_[node->id()].get();
 }
 
 bool BuildLog::WriteEntry(FILE* f, const LogEntry& entry) {
@@ -555,7 +559,7 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
 
   // Write out all deps again.
   for (int old_id = 0; old_id < (int)deps_.size(); ++old_id) {
-    Deps* deps = deps_[old_id];
+    Deps* deps = deps_[old_id].get();
     if (!deps)
       continue;  // If nodes_[old_id] is a leaf, it has no deps.
 
@@ -590,15 +594,13 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
   return true;
 }
 
-bool BuildLog::UpdateDeps(int out_id, Deps* deps) {
+bool BuildLog::UpdateDeps(int out_id, std::unique_ptr<Deps> deps) {
   if (out_id >= (int)deps_.size())
     deps_.resize(out_id + 1);
 
-  bool delete_old = deps_[out_id] != nullptr;
-  if (delete_old)
-    delete deps_[out_id];
-  deps_[out_id] = deps;
-  return delete_old;
+  bool was_there = deps_[out_id] != nullptr;
+  deps_[out_id] = std::move(deps);
+  return was_there;
 }
 
 bool BuildLog::RecordId(Node* node) {

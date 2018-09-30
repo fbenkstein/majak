@@ -404,9 +404,8 @@ TEST_F(DepsLogTest, Truncated) {
 
     // Count how many non-nullptr deps entries there are.
     int new_deps_count = 0;
-    for (std::vector<DepsLog::Deps*>::const_iterator i = log.deps().begin();
-         i != log.deps().end(); ++i) {
-      if (*i)
+    for (const auto& dep : log.deps()) {
+      if (dep)
         ++new_deps_count;
     }
     ASSERT_GE(deps_count, new_deps_count);

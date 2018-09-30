@@ -31,22 +31,22 @@ void BindingEnv::AddBinding(const std::string& key, const std::string& val) {
   bindings_[key] = val;
 }
 
-void BindingEnv::AddRule(const Rule* rule) {
+void BindingEnv::AddRule(std::unique_ptr<const Rule> rule) {
   assert(LookupRuleCurrentScope(rule->name()) == nullptr);
-  rules_[rule->name()] = rule;
+  rules_[rule->name()] = std::move(rule);
 }
 
 const Rule* BindingEnv::LookupRuleCurrentScope(const std::string& rule_name) {
-  std::map<std::string, const Rule*>::iterator i = rules_.find(rule_name);
+  auto i = rules_.find(rule_name);
   if (i == rules_.end())
     return nullptr;
-  return i->second;
+  return i->second.get();
 }
 
 const Rule* BindingEnv::LookupRule(const std::string& rule_name) {
-  std::map<std::string, const Rule*>::iterator i = rules_.find(rule_name);
+  auto i = rules_.find(rule_name);
   if (i != rules_.end())
-    return i->second;
+    return i->second.get();
   if (parent_)
     return parent_->LookupRule(rule_name);
   return nullptr;
@@ -71,7 +71,7 @@ bool Rule::IsReservedBinding(const std::string& var) {
          var == "msvc_deps_prefix";
 }
 
-const std::map<std::string, const Rule*>& BindingEnv::GetRules() const {
+const std::map<std::string, std::unique_ptr<const Rule>>& BindingEnv::GetRules() const {
   return rules_;
 }
 

@@ -825,7 +825,7 @@ TEST_F(BuildTest, DepFileOK) {
       AssertParse(&state_,
                   "rule cc\n  command = cc $in\n  depfile = $out.d\n"
                   "build foo.o: cc foo.c\n"));
-  Edge* edge = state_.edges_.back();
+  Edge* edge = state_.edges_.back().get();
 
   fs_.Create("foo.c", "");
   GetNode("bar.h")->MarkDirty();  // Mark bar.h as missing.
@@ -886,7 +886,7 @@ TEST_F(BuildTest, OrderOnlyDeps) {
       AssertParse(&state_,
                   "rule cc\n  command = cc $in\n  depfile = $out.d\n"
                   "build foo.o: cc foo.c || otherfile\n"));
-  Edge* edge = state_.edges_.back();
+  Edge* edge = state_.edges_.back().get();
 
   fs_.Create("foo.c", "");
   fs_.Create("otherfile", "");
@@ -2100,7 +2100,7 @@ TEST_F(BuildWithDepsLogTest, DepFileOKDepsLog) {
     Builder builder(&state, config_, &build_log, &fs_);
     builder.command_runner_.reset(&command_runner_);
 
-    Edge* edge = state.edges_.back();
+    Edge* edge = state.edges_.back().get();
 
     state.GetNode("bar.h", 0)->MarkDirty();  // Mark bar.h as missing.
     EXPECT_TRUE(builder.AddTarget("fo o.o", &err));
@@ -2168,7 +2168,7 @@ TEST_F(BuildWithDepsLogTest, DISABLED_DepFileDepsLogCanonicalize)
     Builder builder(&state, config_, &build_log, &fs_);
     builder.command_runner_.reset(&command_runner_);
 
-    Edge* edge = state.edges_.back();
+    Edge* edge = state.edges_.back().get();
 
     state.GetNode("bar.h", 0)->MarkDirty();  // Mark bar.h as missing.
     EXPECT_TRUE(builder.AddTarget("a/b/c/d/e/fo o.o", &err));

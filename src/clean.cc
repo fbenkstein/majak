@@ -102,20 +102,18 @@ void Cleaner::PrintFooter() {
 int Cleaner::CleanAll(bool generator) {
   Reset();
   PrintHeader();
-  for (std::vector<Edge*>::iterator e = state_->edges_.begin();
-       e != state_->edges_.end(); ++e) {
+  for (const auto& e : state_->edges_) {
     // Do not try to remove phony targets
-    if ((*e)->is_phony())
+    if (e->is_phony())
       continue;
     // Do not remove generator's files unless generator specified.
-    if (!generator && (*e)->GetBindingBool("generator"))
+    if (!generator && e->GetBindingBool("generator"))
       continue;
-    for (std::vector<Node*>::iterator out_node = (*e)->outputs_.begin();
-         out_node != (*e)->outputs_.end(); ++out_node) {
-      Remove((*out_node)->path());
+    for (const auto& out_node : e->outputs_) {
+      Remove(out_node->path());
     }
 
-    RemoveEdgeFiles(*e);
+    RemoveEdgeFiles(e.get());
   }
   PrintFooter();
   return status_;
@@ -196,13 +194,11 @@ int Cleaner::CleanTargets(int target_count, char* targets[]) {
 void Cleaner::DoCleanRule(const Rule* rule) {
   assert(rule);
 
-  for (std::vector<Edge*>::iterator e = state_->edges_.begin();
-       e != state_->edges_.end(); ++e) {
-    if ((*e)->rule().name() == rule->name()) {
-      for (std::vector<Node*>::iterator out_node = (*e)->outputs_.begin();
-           out_node != (*e)->outputs_.end(); ++out_node) {
-        Remove((*out_node)->path());
-        RemoveEdgeFiles(*e);
+  for (const auto& e : state_->edges_) {
+    if (e->rule().name() == rule->name()) {
+      for (const auto& out_node : e->outputs_) {
+        Remove(out_node->path());
+        RemoveEdgeFiles(e.get());
       }
     }
   }

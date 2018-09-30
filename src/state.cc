@@ -72,13 +72,16 @@ bool Pool::WeightedEdgeCmp(const Edge* a, const Edge* b) {
 
 Pool State::kDefaultPool("", 0);
 Pool State::kConsolePool("console", 1);
-const Rule State::kPhonyRule("phony");
 
 State::State() {
-  bindings_.AddRule(&kPhonyRule);
+  auto phony_rule = std::make_unique<Rule>("phony");
+  phony_rule_ = phony_rule.get();
+  bindings_.AddRule(std::move(phony_rule));
   AddPool(&kDefaultPool);
   AddPool(&kConsolePool);
 }
+
+State::~State() = default;
 
 void State::AddPool(Pool* pool) {
   assert(LookupPool(pool->name()) == nullptr);
@@ -93,20 +96,22 @@ Pool* State::LookupPool(const std::string& pool_name) {
 }
 
 Edge* State::AddEdge(const Rule* rule) {
-  Edge* edge = new Edge();
+  auto owned_edge = std::make_unique<Edge>();
+  auto edge = owned_edge.get();
   edge->rule_ = rule;
   edge->pool_ = &State::kDefaultPool;
   edge->env_ = &bindings_;
-  edges_.push_back(edge);
+  edges_.push_back(std::move(owned_edge));
   return edge;
 }
 
 Node* State::GetNode(std::string_view path, uint64_t slash_bits) {
-  Node* node = LookupNode(path);
-  if (node)
+  if (Node* node = LookupNode(path))
     return node;
-  node = new Node(std::string(path), slash_bits);
-  paths_[node->path()] = node;
+
+  auto owned_node = std::make_unique<Node>(std::string(path), slash_bits);
+  Node* node = owned_node.get();
+  paths_[node->path()] = std::move(owned_node);
   return node;
 }
 
@@ -114,7 +119,7 @@ Node* State::LookupNode(std::string_view path) const {
   METRIC_RECORD("lookup node");
   Paths::const_iterator i = paths_.find(path);
   if (i != paths_.end())
-    return i->second;
+    return i->second.get();
   return nullptr;
 }
 
@@ -146,12 +151,10 @@ bool State::AddDefault(std::string_view path, std::string* err) {
 std::vector<Node*> State::RootNodes(std::string* err) const {
   std::vector<Node*> root_nodes;
   // Search for nodes with no output.
-  for (std::vector<Edge*>::const_iterator e = edges_.begin(); e != edges_.end();
-       ++e) {
-    for (std::vector<Node*>::const_iterator out = (*e)->outputs_.begin();
-         out != (*e)->outputs_.end(); ++out) {
-      if ((*out)->out_edges().empty())
-        root_nodes.push_back(*out);
+  for (const auto& e : edges_) {
+    for (const auto& out : e->outputs_) {
+      if (out->out_edges().empty())
+        root_nodes.push_back(out);
     }
   }
 
@@ -168,16 +171,15 @@ std::vector<Node*> State::DefaultNodes(std::string* err) const {
 void State::Reset() {
   for (Paths::iterator i = paths_.begin(); i != paths_.end(); ++i)
     i->second->ResetState();
-  for (std::vector<Edge*>::iterator e = edges_.begin(); e != edges_.end();
-       ++e) {
-    (*e)->outputs_ready_ = false;
-    (*e)->mark_ = Edge::VisitNone;
+  for (const auto& e : edges_) {
+    e->outputs_ready_ = false;
+    e->mark_ = Edge::VisitNone;
   }
 }
 
 void State::Dump() {
-  for (Paths::iterator i = paths_.begin(); i != paths_.end(); ++i) {
-    Node* node = i->second;
+  for (const auto& [path, node] : paths_) {
+    (void)path;
     printf(
         "%s %s [id:%d]\n", node->path().c_str(),
         node->status_known() ? (node->dirty() ? "dirty" : "clean") : "unknown",

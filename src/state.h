@@ -87,9 +87,9 @@ struct Pool {
 struct State {
   static Pool kDefaultPool;
   static Pool kConsolePool;
-  static const Rule kPhonyRule;
 
   State();
+  ~State();
 
   void AddPool(Pool* pool);
   Pool* LookupPool(const std::string& pool_name);
@@ -116,16 +116,17 @@ struct State {
   std::vector<Node*> DefaultNodes(std::string* error) const;
 
   /// Mapping of path -> Node.
-  typedef ExternalStringHashMap<Node*>::Type Paths;
+  typedef ExternalStringHashMap<std::unique_ptr<Node>>::Type Paths;
   Paths paths_;
 
   /// All the pools used in the graph.
   std::map<std::string, Pool*> pools_;
 
   /// All the edges of the graph.
-  std::vector<Edge*> edges_;
+  std::vector<std::unique_ptr<Edge>> edges_;
 
   BindingEnv bindings_;
+  Rule* phony_rule_;
   std::vector<Node*> defaults_;
 };
 
