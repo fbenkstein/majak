@@ -414,7 +414,7 @@ bool Edge::is_phony() const {
 }
 
 bool Edge::use_console() const {
-  return pool() == &State::kConsolePool;
+  return pool()->name() == "console";
 }
 
 bool Edge::maybe_phonycycle_diagnostic() const {

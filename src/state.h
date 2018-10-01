@@ -85,13 +85,10 @@ struct Pool {
 
 /// Global state (file status) for a single run.
 struct State {
-  static Pool kDefaultPool;
-  static Pool kConsolePool;
-
   State();
   ~State();
 
-  void AddPool(Pool* pool);
+  void AddPool(std::unique_ptr<Pool> pool);
   Pool* LookupPool(const std::string& pool_name);
 
   Edge* AddEdge(const Rule* rule);
@@ -120,7 +117,8 @@ struct State {
   Paths paths_;
 
   /// All the pools used in the graph.
-  std::map<std::string, Pool*> pools_;
+  std::map<std::string, std::unique_ptr<Pool>> pools_;
+  Pool* default_pool_;
 
   /// All the edges of the graph.
   std::vector<std::unique_ptr<Edge>> edges_;

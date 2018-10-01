@@ -149,7 +149,7 @@ bool ManifestParser::ParsePool(std::string* err) {
   if (depth < 0)
     return lexer_.Error("expected 'depth =' line", err);
 
-  state_->AddPool(new Pool(name, depth));
+  state_->AddPool(std::make_unique<Pool>(name, depth));
   return true;
 }
 

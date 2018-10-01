@@ -70,37 +70,36 @@ bool Pool::WeightedEdgeCmp(const Edge* a, const Edge* b) {
   return ((weight_diff < 0) || (weight_diff == 0 && a < b));
 }
 
-Pool State::kDefaultPool("", 0);
-Pool State::kConsolePool("console", 1);
-
 State::State() {
   bindings_ = std::make_shared<BindingEnv>();
   auto phony_rule = std::make_unique<Rule>("phony");
   phony_rule_ = phony_rule.get();
   bindings_->AddRule(std::move(phony_rule));
-  AddPool(&kDefaultPool);
-  AddPool(&kConsolePool);
+  auto default_pool = std::make_unique<Pool>("", 0);
+  default_pool_ = default_pool.get();
+  AddPool(std::move(default_pool));
+  AddPool(std::make_unique<Pool>("console", 1));
 }
 
 State::~State() = default;
 
-void State::AddPool(Pool* pool) {
+void State::AddPool(std::unique_ptr<Pool> pool) {
   assert(LookupPool(pool->name()) == nullptr);
-  pools_[pool->name()] = pool;
+  pools_[pool->name()] = std::move(pool);
 }
 
 Pool* State::LookupPool(const std::string& pool_name) {
-  std::map<std::string, Pool*>::iterator i = pools_.find(pool_name);
+  auto i = pools_.find(pool_name);
   if (i == pools_.end())
     return nullptr;
-  return i->second;
+  return i->second.get();
 }
 
 Edge* State::AddEdge(const Rule* rule) {
   auto owned_edge = std::make_unique<Edge>();
   auto edge = owned_edge.get();
   edge->rule_ = rule;
-  edge->pool_ = &State::kDefaultPool;
+  edge->pool_ = default_pool_;
   edge->env_ = bindings_;
   edges_.push_back(std::move(owned_edge));
   return edge;
@@ -188,10 +187,9 @@ void State::Dump() {
   }
   if (!pools_.empty()) {
     printf("resource_pools:\n");
-    for (std::map<std::string, Pool*>::const_iterator it = pools_.begin();
-         it != pools_.end(); ++it) {
-      if (!it->second->name().empty()) {
-        it->second->Dump();
+    for (const auto& [name, pool] : pools_) {
+      if (!name.empty()) {
+        pool->Dump();
       }
     }
   }
