@@ -12,25 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// On AIX, inttypes.h gets indirectly included by build_log.h.
-// It's easiest just to ask for the printf format macros right away.
-#ifndef _WIN32
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#endif
-
 #include "build_log.h"
+
 #include "log_generated.h"
-
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-
-#ifndef _WIN32
-#include <inttypes.h>
-#include <unistd.h>
-#endif
+#include "log_schema.h"
 
 #include "build.h"
 #include "filesystem.h"
@@ -39,7 +24,11 @@
 #include "state.h"
 #include "util.h"
 
-#include "log_schema.h"
+#include <cstdio>
+#include <cstring>
+#include <optional>
+
+#include <errno.h>
 
 namespace ninja {
 
@@ -145,13 +134,33 @@ inline uint64_t MurmurHash64A(const void* key, size_t len) {
 // Record size is currently limited to less than the full 32 bit, to
 // be able to control flushing manually.
 const unsigned kMaxRecordSize = (1 << 20) - 1;
+
+bool VersionIsValid(uint32_t version) {
+  return version >= BuildLog::kOldestSupportedVersion &&
+         version <= BuildLog::kCurrentVersion;
+}
+
+template <class T>
+bool FlushEntry(FILE* file, flatbuffers::FlatBufferBuilder& fbb,
+                const flatbuffers::Offset<T>& entry_offset) {
+  log::EntryHolderBuilder entry_holder_builder(fbb);
+  entry_holder_builder.add_entry_type(log::EntryTraits<T>::enum_value);
+  entry_holder_builder.add_entry(entry_offset.Union());
+  auto entry_holder_offset = entry_holder_builder.Finish();
+  fbb.FinishSizePrefixed(entry_holder_offset);
+
+  assert(fbb.GetSize() < kMaxRecordSize);
+
+  return fwrite(fbb.GetBufferPointer(), 1, fbb.GetSize(), file) ==
+             fbb.GetSize() &&
+         fflush(file) == 0;
+}
 }  // namespace
 
 // static
-const char* const BuildLog::kFileSignature = "# majak log v1.%03d\n";
-const int BuildLog::kCurrentVersion = 2;
-const int BuildLog::kOldestSupportedVersion = 2;
-const char* const BuildLog::kFilename = ".ninja_log";
+const uint32_t BuildLog::kCurrentVersion = 1;
+const uint32_t BuildLog::kOldestSupportedVersion = 1;
+const char* const BuildLog::kFilename = ".majak_log";
 const char* const BuildLog::kSchema = kBuildLogSchema;
 
 uint64_t BuildLog::HashCommand(std::string_view command) {
@@ -186,10 +195,12 @@ bool BuildLog::OpenForWrite(const std::string& path, const BuildLogUser& user,
   fseek(log_file_, 0, SEEK_END);
 
   if (ftell(log_file_) == 0) {
-    if (fprintf(log_file_, kFileSignature, kCurrentVersion) < 0) {
-      *err = strerror(errno);
+    // Write version entry as first entry.
+    fbb_.Clear();
+    auto version_offset = log::CreateVersionEntry(fbb_, kCurrentVersion);
+
+    if (!FlushEntry(log_file_, fbb_, version_offset))
       return false;
-    }
   }
 
   return true;
@@ -230,9 +241,6 @@ bool BuildLog::RecordCommand(const std::string& path, uint64_t command_hash,
   if (log_file_) {
     if (!WriteEntry(log_file_, *log_entry))
       return false;
-    if (fflush(log_file_) != 0) {
-      return false;
-    }
   }
   return true;
 }
@@ -281,31 +289,26 @@ bool BuildLog::RecordDeps(Node* node, TimeStamp mtime, int node_count,
   if (!made_change)
     return true;
 
-  log::EntryHolderT entry_holder;
+  fbb_.Clear();
 
   {
-    log::DepsEntryT entry;
-    entry.output = node->id();
-    entry.mtime = mtime;
-    entry.deps.reserve(node_count);
+    fbb_.StartVector(node_count, sizeof(uint32_t));
 
-    for (int i = 0; i < node_count; ++i) {
-      entry.deps.push_back(nodes[i]->id());
+    for (size_t i = node_count; i > 0;) {
+      fbb_.PushElement(static_cast<uint32_t>(nodes[--i]->id()));
     }
 
-    entry_holder.entry.Set(std::move(entry));
+    auto deps_offset = fbb_.EndVector(node_count);
+
+    log::DepsEntryBuilder deps_entry_builder(fbb_);
+    deps_entry_builder.add_output(node->id());
+    deps_entry_builder.add_deps(deps_offset);
+    deps_entry_builder.add_mtime(mtime);
+    auto deps_entry_offset = deps_entry_builder.Finish();
+
+    if (!FlushEntry(log_file_, fbb_, deps_entry_offset))
+      return false;
   }
-
-  fbb_.Clear();
-  auto offset = log::CreateEntryHolder(fbb_, &entry_holder);
-  fbb_.FinishSizePrefixed(offset);
-  assert(fbb_.GetSize() < kMaxRecordSize);
-  if (fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), log_file_) !=
-      fbb_.GetSize())
-    return false;
-
-  if (fflush(log_file_) != 0)
-    return false;
 
   // Update in-memory representation.
   auto deps = std::make_unique<Deps>(mtime, node_count);
@@ -332,17 +335,69 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
     return false;
   }
 
-  int log_version = 0;
-  size_t signature_length =
-      std::snprintf(nullptr, 0, kFileSignature, kCurrentVersion);
-  std::string signature(signature_length, '\x00');
+  static constexpr size_t size_prefix_size = sizeof(flatbuffers::uoffset_t);
+  std::vector<uint8_t> entry_buffer;
 
-  if (fread(signature.data(), 1, signature.size(), file) != signature_length ||
-      sscanf(signature.data(), kFileSignature, &log_version) != 1 ||
-      log_version < kOldestSupportedVersion || log_version > kCurrentVersion) {
-    *err =
-        ("build log version invalid, perhaps due to being too old; "
-         "starting over");
+  enum class ReadStatus {
+    kSuccess,
+    kFailed,
+    kFinished,
+  };
+
+  auto read_entry_data = [&entry_buffer, file]() {
+    entry_buffer.resize(size_prefix_size);
+
+    if (size_t bytes_read =
+            fread(entry_buffer.data(), 1, size_prefix_size, file);
+        bytes_read != size_prefix_size) {
+      return bytes_read == 0 ? ReadStatus::kFinished : ReadStatus::kFailed;
+    }
+
+    size_t entry_size = flatbuffers::GetPrefixedSize(entry_buffer.data());
+
+    entry_buffer.resize(size_prefix_size + entry_size);
+
+    size_t bytes_read =
+        fread(entry_buffer.data() + size_prefix_size, 1, entry_size, file);
+
+    return bytes_read == entry_size ? ReadStatus::kSuccess
+                                    : ReadStatus::kFailed;
+  };
+
+  // Try to read version entry first.
+  auto log_version = [&read_entry_data,
+                      &entry_buffer]() -> std::optional<uint32_t> {
+    if (read_entry_data() != ReadStatus::kSuccess)
+      return std::nullopt;
+
+    flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
+
+    // First entry (only) should have the file identifier.
+    if (!verifier.VerifySizePrefixedBuffer<log::EntryHolder>(nullptr))
+      return std::nullopt;
+
+    auto* entry_holder =
+        flatbuffers::GetSizePrefixedRoot<log::EntryHolder>(entry_buffer.data());
+
+    if (!entry_holder)
+      return std::nullopt;
+
+    auto version_entry = entry_holder->entry_as_VersionEntry();
+
+    if (!version_entry)
+      return std::nullopt;
+
+    return version_entry->version();
+  }();
+
+  if (!log_version || !VersionIsValid(*log_version)) {
+    if (!log_version)
+      *err = "missing log version entry";
+    else
+      *err = "log version " + std::to_string(*log_version) + " too " +
+             (log_version < kOldestSupportedVersion ? "old" : "new") +
+             " (current " + std::to_string(kCurrentVersion) + ")";
+    *err += "; starting over";
     fclose(file);
     fs::error_code ec;
     fs::remove(path, ec);
@@ -356,40 +411,30 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
   }
 
   long offset;
-  bool read_failed = false;
+  ReadStatus read_status;
   int unique_entry_count = 0;
   int total_entry_count = 0;
   int unique_dep_record_count = 0;
   int total_dep_record_count = 0;
 
-  uint8_t size_buffer[sizeof(flatbuffers::uoffset_t)];
-  std::vector<uint8_t> entry_buffer;
-
   for (;;) {
     offset = ftell(file);
 
-    if (size_t bytes_read = fread(size_buffer, 1, sizeof(size_buffer), file);
-        bytes_read != sizeof(size_buffer)) {
-      read_failed = bytes_read != 0;
+    if ((read_status = read_entry_data()) != ReadStatus::kSuccess)
       break;
-    }
 
-    size_t entry_size = flatbuffers::GetPrefixedSize(size_buffer);
+    flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
 
-    entry_buffer.resize(std::max(entry_buffer.size(), entry_size));
-
-    if (fread(entry_buffer.data(), 1, entry_size, file) != entry_size) {
-      read_failed = true;
+    if (!verifier.VerifySizePrefixedBuffer<log::EntryHolder>(nullptr)) {
+      read_status = ReadStatus::kFailed;
       break;
     }
 
     auto* entry_holder =
-        flatbuffers::GetRoot<log::EntryHolder>(entry_buffer.data());
+        flatbuffers::GetSizePrefixedRoot<log::EntryHolder>(entry_buffer.data());
 
-    flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
-
-    if (!entry_holder->Verify(verifier)) {
-      read_failed = true;
+    if (!entry_holder) {
+      read_status = ReadStatus::kFailed;
       break;
     }
 
@@ -429,7 +474,7 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
       int expected_id = ~path_entry->checksum();
       int id = nodes_.size();
       if (id != expected_id) {
-        read_failed = true;
+        read_status = ReadStatus::kFailed;
         break;
       }
 
@@ -454,7 +499,7 @@ bool BuildLog::Load(const std::string& path, State* state, std::string* err) {
     }
   }
 
-  if (read_failed) {
+  if (read_status != ReadStatus::kFinished) {
     // An error occurred while loading; try to recover by truncating the
     // file to the last fully-read record.
     if (ferror(file)) {
@@ -511,15 +556,9 @@ BuildLog::Deps* BuildLog::GetDeps(Node* node) {
 }
 
 bool BuildLog::WriteEntry(FILE* f, const LogEntry& entry) {
-  log::EntryHolderT entry_holder;
-  entry_holder.entry.Set(LogEntry(entry));
   fbb_.Clear();
-  auto offset = log::CreateEntryHolder(fbb_, &entry_holder);
-  fbb_.FinishSizePrefixed(offset);
-  assert(fbb_.GetSize() < kMaxRecordSize);
-  return fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), f) ==
-             fbb_.GetSize() &&
-         fflush(f) == 0;
+  auto build_entry_offset = log::CreateBuildEntry(fbb_, &entry);
+  return FlushEntry(f, fbb_, build_entry_offset);
 }
 
 bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
@@ -529,9 +568,15 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
   Close();
   std::string temp_path = path + ".recompact";
 
+  auto remove_temp_path = [temp_path](){
+    fs::error_code ec;
+    fs::remove(temp_path, ec);
+    return ec;
+  };
+
   // OpenForWrite() opens for append.  Make sure it's not appending to a
   // left-over file from a previous recompaction attempt that crashed somehow.
-  unlink(temp_path.c_str());
+  remove_temp_path();
 
   BuildLog new_log;
 
@@ -539,7 +584,7 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
     return false;
 
   // Write out all entries but skip dead paths.
-  for (const auto& [output, entry] : entries_) {
+  for (const auto & [ output, entry ] : entries_) {
     if (user.IsPathDead(output))
       continue;
 
@@ -547,7 +592,7 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
                                entry->start_time, entry->end_time,
                                entry->mtime)) {
       *err = strerror(errno);
-      unlink(temp_path.c_str());
+      remove_temp_path();
       return false;
     }
   }
@@ -569,7 +614,7 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
     if (!new_log.RecordDeps(nodes_[old_id], deps->mtime, deps->node_count,
                             deps->nodes)) {
       *err = strerror(errno);
-      unlink(temp_path.c_str());
+      remove_temp_path();
       return false;
     }
   }
@@ -581,14 +626,14 @@ bool BuildLog::Recompact(const std::string& path, const BuildLogUser& user,
   deps_ = std::move(new_log.deps_);
   entries_ = std::move(new_log.entries_);
 
-  if (unlink(path.c_str()) < 0) {
-    *err = strerror(errno);
-    return false;
-  }
+  {
+    fs::error_code ec;
+    fs::rename(temp_path, path);
 
-  if (rename(temp_path.c_str(), path.c_str()) < 0) {
-    *err = strerror(errno);
-    return false;
+    if (ec) {
+      *err = ec.message();
+      return false;
+    }
   }
 
   return true;
@@ -604,27 +649,21 @@ bool BuildLog::UpdateDeps(int out_id, std::unique_ptr<Deps> deps) {
 }
 
 bool BuildLog::RecordId(Node* node) {
+  std::string_view path = node->path();
   int id = nodes_.size();
 
-  log::EntryHolderT entry_holder;
+  fbb_.Clear();
 
   {
-    log::PathEntryT entry;
-    entry.path = node->path();
-    entry.checksum = ~static_cast<uint32_t>(id);
-    entry_holder.entry.Set(std::move(entry));
+    auto path_offset = fbb_.CreateString(path.data(), path.size());
+    log::PathEntryBuilder path_entry_builder(fbb_);
+    path_entry_builder.add_path(path_offset);
+    path_entry_builder.add_checksum(~static_cast<uint32_t>(id));
+    auto path_entry_offset = path_entry_builder.Finish();
+
+    if (!FlushEntry(log_file_, fbb_, path_entry_offset))
+      return false;
   }
-
-  fbb_.Clear();
-  auto offset = log::CreateEntryHolder(fbb_, &entry_holder);
-  fbb_.FinishSizePrefixed(offset);
-  assert(fbb_.GetSize() < kMaxRecordSize);
-  if (fwrite(fbb_.GetBufferPointer(), 1, fbb_.GetSize(), log_file_) !=
-      fbb_.GetSize())
-    return false;
-
-  if (fflush(log_file_) != 0)
-    return false;
 
   node->set_id(id);
   nodes_.push_back(node);

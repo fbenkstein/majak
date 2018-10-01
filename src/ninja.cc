@@ -740,7 +740,7 @@ bool WarningEnable(const std::string& name, Options* options) {
 }
 
 bool NinjaMain::OpenBuildLog(bool recompact_only) {
-  std::string log_path = ".ninja_log";
+  std::string log_path = BuildLog::kFilename;
   if (!build_dir_.empty())
     log_path = build_dir_ + "/" + log_path;
 

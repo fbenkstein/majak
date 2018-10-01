@@ -14,9 +14,13 @@
 
 #include "build_log.h"
 
+#include "log_generated.h"
+
 #include "filesystem.h"
 #include "test.h"
 #include "util.h"
+
+#include <flatbuffers/flatbuffers.h>
 
 #include <sys/stat.h>
 #ifdef _WIN32
@@ -75,10 +79,11 @@ TEST_F(BuildLogTest, WriteRead) {
 }
 
 TEST_F(BuildLogTest, FirstWriteAddsSignature) {
-  const std::string kExpectedSignature = "# majak log v";
-
   BuildLog log;
   std::string contents, err;
+  auto contents_data = [&contents]() {
+    return reinterpret_cast<const uint8_t*>(contents.data());
+  };
 
   EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
   ASSERT_EQ("", err);
@@ -86,9 +91,26 @@ TEST_F(BuildLogTest, FirstWriteAddsSignature) {
 
   ASSERT_EQ(0, ReadFile(kTestFilename, &contents, &err));
   ASSERT_EQ("", err);
-  ASSERT_LT(kExpectedSignature.size(), contents.size());
-  EXPECT_EQ(kExpectedSignature, contents.substr(0, kExpectedSignature.size()));
-  EXPECT_EQ('\n', contents.back());
+
+  {
+    flatbuffers::Verifier verifier(contents_data(), contents.size());
+
+    ASSERT_TRUE(log::VerifySizePrefixedEntryHolderBuffer(verifier));
+
+    auto* entry_holder =
+        flatbuffers::GetSizePrefixedRoot<log::EntryHolder>(contents_data());
+
+    ASSERT_TRUE(entry_holder);
+
+    auto version_entry = entry_holder->entry_as_VersionEntry();
+
+    ASSERT_TRUE(version_entry);
+
+    ASSERT_EQ(BuildLog::kCurrentVersion, version_entry->version());
+
+    EXPECT_EQ(contents.size(), flatbuffers::GetPrefixedSize(contents_data()) +
+                                   sizeof(flatbuffers::uoffset_t));
+  }
 
   // Opening the file anew shouldn't add a second version string.
   EXPECT_TRUE(log.OpenForWrite(kTestFilename, *this, &err));
@@ -98,9 +120,26 @@ TEST_F(BuildLogTest, FirstWriteAddsSignature) {
   contents.clear();
   ASSERT_EQ(0, ReadFile(kTestFilename, &contents, &err));
   ASSERT_EQ("", err);
-  ASSERT_LT(kExpectedSignature.size(), contents.size());
-  EXPECT_EQ(kExpectedSignature, contents.substr(0, kExpectedSignature.size()));
-  EXPECT_EQ('\n', contents.back());
+
+  {
+    flatbuffers::Verifier verifier(contents_data(), contents.size());
+
+    ASSERT_TRUE(log::VerifySizePrefixedEntryHolderBuffer(verifier));
+
+    auto* entry_holder =
+        flatbuffers::GetSizePrefixedRoot<log::EntryHolder>(contents_data());
+
+    ASSERT_TRUE(entry_holder);
+
+    auto version_entry = entry_holder->entry_as_VersionEntry();
+
+    ASSERT_TRUE(version_entry);
+
+    ASSERT_EQ(BuildLog::kCurrentVersion, version_entry->version());
+
+    EXPECT_EQ(contents.size(), flatbuffers::GetPrefixedSize(contents_data()) +
+                                   sizeof(flatbuffers::uoffset_t));
+  }
 }
 
 namespace {
@@ -205,6 +244,18 @@ TEST_F(BuildLogTest, DuplicateVersionHeader) {
   BuildLog log;
   EXPECT_TRUE(log.Load(kTestFilename, &state_, &err));
   EXPECT_NE(err.find("version"), std::string::npos);
+  EXPECT_FALSE(fs::exists(kTestFilename));
+}
+
+TEST_F(BuildLogTest, NoVersionEntry) {
+  FILE* f = fopen(kTestFilename, "wb");
+  ASSERT_TRUE(f);
+  fclose(f);
+
+  std::string err;
+  BuildLog log;
+  EXPECT_TRUE(log.Load(kTestFilename, &state_, &err));
+  EXPECT_NE(err.find("missing log version"), std::string::npos);
   EXPECT_FALSE(fs::exists(kTestFilename));
 }
 

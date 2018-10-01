@@ -1,5 +1,11 @@
 namespace ninja.log;
 
+/// Tag at the beginning of the log.
+table VersionEntry {
+  /// Version of the log.
+  version:uint32;
+}
+
 /// Record of an executed command.
 table BuildEntry {
   /// Name of the output.
@@ -31,6 +37,7 @@ table DepsEntry {
 }
 
 union Entry {
+  VersionEntry,
   BuildEntry,
   PathEntry,
   DepsEntry,
@@ -39,3 +46,5 @@ union Entry {
 table EntryHolder {
   entry:Entry;
 }
+
+root_type EntryHolder;

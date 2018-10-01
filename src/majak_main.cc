@@ -290,25 +290,12 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
     return 1;
   }
 
-  int log_version = 0;
-  size_t signature_length = std::snprintf(nullptr, 0, BuildLog::kFileSignature,
-                                          BuildLog::kCurrentVersion);
-  std::string signature(signature_length, '\x00');
-
-  if (fread(signature.data(), 1, signature.size(), file) != signature_length ||
-      sscanf(signature.data(), BuildLog::kFileSignature, &log_version) != 1 ||
-      log_version < BuildLog::kOldestSupportedVersion ||
-      log_version > BuildLog::kCurrentVersion) {
-    Error("build log version invalid");
-    return 1;
-  }
-
   flatbuffers::IDLOptions idl_options;
   idl_options.strict_json = true;
   idl_options.indent_step = -1;
   flatbuffers::Parser parser(idl_options);
 
-  if (!parser.Parse(BuildLog::kSchema) || !parser.SetRootType("EntryHolder"))
+  if (!parser.Parse(BuildLog::kSchema))
     Fatal("invalid schema");
 
   std::string output;
@@ -329,12 +316,9 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
       break;
     }
 
-    auto* entry_holder =
-        flatbuffers::GetRoot<log::EntryHolder>(entry_buffer.data());
-
     flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
 
-    if (!entry_holder->Verify(verifier)) {
+    if (!verifier.VerifyBuffer<log::EntryHolder>()) {
       Fatal("failed to verify entry");
     }
 
