@@ -999,14 +999,18 @@ TEST_F(BuildTest, RebuildOrderOnlyDeps) {
 }
 
 #ifdef _WIN32
-TEST_F(BuildTest, DepFileCanonicalize) {
+TEST_F(BuildTest, DepFileCanonicalize)
+#else
+TEST_F(BuildTest, DISABLED_DepFileCanonicalize)
+#endif
+{
   std::string err;
   int orig_edges = state_.edges_.size();
   ASSERT_NO_FATAL_FAILURE(
       AssertParse(&state_,
                   "rule cc\n  command = cc $in\n  depfile = $out.d\n"
                   "build gen/stuff\\things/foo.o: cc x\\y/z\\foo.c\n"));
-  Edge* edge = state_.edges_.back();
+  Edge* edge = state_.edges_.back().get();
 
   fs_.Create("x/y/z/foo.c", "");
   GetNode("bar.h")->MarkDirty();  // Mark bar.h as missing.
@@ -1029,7 +1033,6 @@ TEST_F(BuildTest, DepFileCanonicalize) {
   // using the slashes from the manifest.
   ASSERT_EQ("cc x\\y/z\\foo.c", edge->EvaluateCommand());
 }
-#endif
 
 TEST_F(BuildTest, Phony) {
   std::string err;
