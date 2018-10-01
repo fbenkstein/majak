@@ -74,9 +74,10 @@ Pool State::kDefaultPool("", 0);
 Pool State::kConsolePool("console", 1);
 
 State::State() {
+  bindings_ = std::make_shared<BindingEnv>();
   auto phony_rule = std::make_unique<Rule>("phony");
   phony_rule_ = phony_rule.get();
-  bindings_.AddRule(std::move(phony_rule));
+  bindings_->AddRule(std::move(phony_rule));
   AddPool(&kDefaultPool);
   AddPool(&kConsolePool);
 }
@@ -100,7 +101,7 @@ Edge* State::AddEdge(const Rule* rule) {
   auto edge = owned_edge.get();
   edge->rule_ = rule;
   edge->pool_ = &State::kDefaultPool;
-  edge->env_ = &bindings_;
+  edge->env_ = bindings_;
   edges_.push_back(std::move(owned_edge));
   return edge;
 }

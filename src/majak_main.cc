@@ -275,7 +275,7 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
       exit(1);
     }
 
-    std::string build_dir = state.bindings_.LookupVariable("builddir");
+    std::string build_dir = state.bindings_->LookupVariable("builddir");
     if (!build_dir.empty())
       log_path = build_dir + "/" + log_path;
   }

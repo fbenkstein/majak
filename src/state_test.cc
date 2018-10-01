@@ -32,7 +32,7 @@ TEST(State, Basic) {
   auto owned_rule = std::make_unique<Rule>("cat");
   auto rule = owned_rule.get();
   rule->AddBinding("command", command);
-  state.bindings_.AddRule(std::move(owned_rule));
+  state.bindings_->AddRule(std::move(owned_rule));
 
   Edge* edge = state.AddEdge(rule);
   state.AddIn(edge, "in1", 0);

@@ -149,7 +149,7 @@ struct Edge {
   Pool* pool_;
   std::vector<Node*> inputs_;
   std::vector<Node*> outputs_;
-  BindingEnv* env_;
+  std::shared_ptr<BindingEnv> env_;
   VisitMark mark_;
   bool outputs_ready_;
   bool deps_missing_;

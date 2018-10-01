@@ -16,6 +16,7 @@
 #define NINJA_MANIFEST_PARSER_H_
 
 #include <string>
+#include <memory>
 
 #include "lexer.h"
 
@@ -79,7 +80,7 @@ struct ManifestParser {
   bool ExpectToken(Lexer::Token expected, std::string* err);
 
   State* state_;
-  BindingEnv* env_;
+  std::shared_ptr<BindingEnv> env_;
   FileReader* file_reader_;
   Lexer lexer_;
   ManifestParserOptions options_;

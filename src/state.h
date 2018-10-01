@@ -125,7 +125,7 @@ struct State {
   /// All the edges of the graph.
   std::vector<std::unique_ptr<Edge>> edges_;
 
-  BindingEnv bindings_;
+  std::shared_ptr<BindingEnv> bindings_;
   Rule* phony_rule_;
   std::vector<Node*> defaults_;
 };

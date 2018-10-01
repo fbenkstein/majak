@@ -782,7 +782,7 @@ void NinjaMain::DumpMetrics() {
 }
 
 bool NinjaMain::EnsureBuildDirExists() {
-  build_dir_ = state_.bindings_.LookupVariable("builddir");
+  build_dir_ = state_.bindings_->LookupVariable("builddir");
   if (!build_dir_.empty() && !config_.dry_run) {
     if (!disk_interface_.MakeDirs(build_dir_ + "/.") && errno != EEXIST) {
       Error("creating build directory %s: %s", build_dir_.c_str(),

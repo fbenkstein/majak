@@ -31,7 +31,7 @@ ManifestParser::ManifestParser(State* state, FileReader* file_reader,
                                ManifestParserOptions options)
     : state_(state), file_reader_(file_reader), options_(options),
       quiet_(false) {
-  env_ = &state->bindings_;
+  env_ = state->bindings_;
 }
 
 bool ManifestParser::Load(const std::string& filename, std::string* err,
@@ -86,7 +86,7 @@ bool ManifestParser::Parse(const std::string& filename,
       EvalString let_value;
       if (!ParseLet(&name, &let_value, err))
         return false;
-      std::string value = let_value.Evaluate(env_);
+      std::string value = let_value.Evaluate(env_.get());
       // Check ninja_required_version immediately so we can exit
       // before encountering any syntactic surprises.
       if (name == "ninja_required_version")
@@ -137,7 +137,7 @@ bool ManifestParser::ParsePool(std::string* err) {
       return false;
 
     if (key == "depth") {
-      std::string depth_string = value.Evaluate(env_);
+      std::string depth_string = value.Evaluate(env_.get());
       depth = atol(depth_string.c_str());
       if (depth < 0)
         return lexer_.Error("invalid pool depth", err);
@@ -215,7 +215,7 @@ bool ManifestParser::ParseDefault(std::string* err) {
     return lexer_.Error("expected target name", err);
 
   do {
-    std::string path = eval.Evaluate(env_);
+    std::string path = eval.Evaluate(env_.get());
     std::string path_err;
     uint64_t slash_bits;  // Unused because this only does lookup.
     if (!CanonicalizePath(&path, &slash_bits, &path_err))
@@ -321,14 +321,15 @@ bool ManifestParser::ParseEdge(std::string* err) {
 
   // Bindings on edges are rare, so allocate per-edge envs only when needed.
   bool has_indent_token = lexer_.PeekToken(Lexer::INDENT);
-  BindingEnv* env = has_indent_token ? new BindingEnv(env_) : env_;
+  std::shared_ptr<BindingEnv> env =
+      has_indent_token ? std::make_shared<BindingEnv>(env_) : env_;
   while (has_indent_token) {
     std::string key;
     EvalString val;
     if (!ParseLet(&key, &val, err))
       return false;
 
-    env->AddBinding(key, val.Evaluate(env_));
+    env->AddBinding(key, val.Evaluate(env_.get()));
     has_indent_token = lexer_.PeekToken(Lexer::INDENT);
   }
 
@@ -345,7 +346,7 @@ bool ManifestParser::ParseEdge(std::string* err) {
 
   edge->outputs_.reserve(outs.size());
   for (size_t i = 0, e = outs.size(); i != e; ++i) {
-    std::string path = outs[i].Evaluate(env);
+    std::string path = outs[i].Evaluate(env.get());
     std::string path_err;
     uint64_t slash_bits;
     if (!CanonicalizePath(&path, &slash_bits, &path_err))
@@ -378,7 +379,7 @@ bool ManifestParser::ParseEdge(std::string* err) {
 
   edge->inputs_.reserve(ins.size());
   for (std::vector<EvalString>::iterator i = ins.begin(); i != ins.end(); ++i) {
-    std::string path = i->Evaluate(env);
+    std::string path = i->Evaluate(env.get());
     std::string path_err;
     uint64_t slash_bits;
     if (!CanonicalizePath(&path, &slash_bits, &path_err))
@@ -424,11 +425,11 @@ bool ManifestParser::ParseFileInclude(bool new_scope, std::string* err) {
   EvalString eval;
   if (!lexer_.ReadPath(&eval, err))
     return false;
-  std::string path = eval.Evaluate(env_);
+  std::string path = eval.Evaluate(env_.get());
 
   ManifestParser subparser(state_, file_reader_, options_);
   if (new_scope) {
-    subparser.env_ = new BindingEnv(env_);
+    subparser.env_ = std::make_shared<BindingEnv>(env_);
   } else {
     subparser.env_ = env_;
   }

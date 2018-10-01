@@ -48,7 +48,7 @@ struct EvalString {
 
  private:
   enum TokenType { RAW, SPECIAL };
-  typedef std::vector<std::pair<std::string, TokenType> > TokenList;
+  typedef std::vector<std::pair<std::string, TokenType>> TokenList;
   TokenList parsed_;
 };
 
@@ -76,8 +76,8 @@ struct Rule {
 /// An Env which contains a mapping of variables to values
 /// as well as a pointer to a parent scope.
 struct BindingEnv : public Env {
-  BindingEnv() : parent_(nullptr) {}
-  explicit BindingEnv(BindingEnv* parent) : parent_(parent) {}
+  explicit BindingEnv(std::shared_ptr<BindingEnv> parent = nullptr)
+      : parent_(parent) {}
 
   virtual ~BindingEnv() {}
   virtual std::string LookupVariable(const std::string& var);
@@ -100,7 +100,7 @@ struct BindingEnv : public Env {
  private:
   std::map<std::string, std::string> bindings_;
   std::map<std::string, std::unique_ptr<const Rule>> rules_;
-  BindingEnv* parent_;
+  std::shared_ptr<BindingEnv> parent_;
 };
 
 }  // namespace ninja
