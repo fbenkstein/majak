@@ -582,7 +582,8 @@ int NinjaMain::ToolCompilationDatabase(const Options* options, int argc,
         printf("\n  {\n    \"directory\": \"");
         EncodeJSONString(&cwd[0]);
         printf("\",\n    \"command\": \"");
-        EncodeJSONString(EvaluateCommandWithRspfile(e.get(), eval_mode).c_str());
+        EncodeJSONString(
+            EvaluateCommandWithRspfile(e.get(), eval_mode).c_str());
         printf("\",\n    \"file\": \"");
         EncodeJSONString(e->inputs_[0]->path().c_str());
         printf("\",\n    \"output\": \"");

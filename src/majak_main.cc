@@ -335,7 +335,7 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
     flatbuffers::Verifier verifier(entry_buffer.data(), entry_buffer.size());
 
     if (!entry_holder->Verify(verifier)) {
-        Fatal("failed to verify entry");
+      Fatal("failed to verify entry");
     }
 
     if (flatbuffers::GenerateText(parser, entry_buffer.data(), &output)) {

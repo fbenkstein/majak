@@ -15,8 +15,8 @@
 #ifndef NINJA_MANIFEST_PARSER_H_
 #define NINJA_MANIFEST_PARSER_H_
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include "lexer.h"
 

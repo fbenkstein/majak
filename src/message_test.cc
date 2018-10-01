@@ -58,14 +58,15 @@ TEST(MessageTest, EXPLAIN_OFF) {
 }
 
 TEST(MessageTest, EXPLAIN_ON) {
-    auto f = [] {
-                 ninja::g_explaining = true;
-                 fputs("before", stderr);
-                 fflush(stderr);
-                 ninja::EXPLAIN("the %s happened", "thing");
-                 fputs("after", stderr);
-                 fflush(stderr);
-                 std::exit(13);
-             };
-    ASSERT_EXIT(f(), ::testing::ExitedWithCode(13), "ninja explain: the thing happened");
+  auto f = [] {
+    ninja::g_explaining = true;
+    fputs("before", stderr);
+    fflush(stderr);
+    ninja::EXPLAIN("the %s happened", "thing");
+    fputs("after", stderr);
+    fflush(stderr);
+    std::exit(13);
+  };
+  ASSERT_EXIT(f(), ::testing::ExitedWithCode(13),
+              "ninja explain: the thing happened");
 }

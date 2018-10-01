@@ -71,7 +71,8 @@ bool Rule::IsReservedBinding(const std::string& var) {
          var == "msvc_deps_prefix";
 }
 
-const std::map<std::string, std::unique_ptr<const Rule>>& BindingEnv::GetRules() const {
+const std::map<std::string, std::unique_ptr<const Rule>>& BindingEnv::GetRules()
+    const {
   return rules_;
 }
 
