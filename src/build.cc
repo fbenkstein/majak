@@ -544,7 +544,7 @@ bool RealCommandRunner::StartCommand(Edge* edge) {
 }
 
 bool RealCommandRunner::WaitForCommand(Result* result) {
-  Subprocess* subproc;
+  std::unique_ptr<Subprocess> subproc;
   while ((subproc = subprocs_.NextFinished()) == nullptr) {
     bool interrupted = subprocs_.DoWork();
     if (interrupted)
@@ -554,11 +554,11 @@ bool RealCommandRunner::WaitForCommand(Result* result) {
   result->status = subproc->Finish();
   result->output = subproc->GetOutput();
 
-  std::map<Subprocess*, Edge*>::iterator e = subproc_to_edge_.find(subproc);
+  std::map<Subprocess*, Edge*>::iterator e =
+      subproc_to_edge_.find(subproc.get());
   result->edge = e->second;
   subproc_to_edge_.erase(e);
 
-  delete subproc;
   return true;
 }
 

@@ -214,7 +214,6 @@ TEST_F(SubprocessTest, SetWithMulti) {
   for (int i = 0; i < 3; ++i) {
     ASSERT_EQ(ExitSuccess, processes[i]->Finish());
     ASSERT_NE("", processes[i]->GetOutput());
-    delete processes[i];
   }
 }
 

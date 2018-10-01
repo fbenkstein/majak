@@ -211,13 +211,12 @@ SubprocessSet::~SubprocessSet() {
 }
 
 Subprocess* SubprocessSet::Add(const std::string& command, bool use_console) {
-  Subprocess* subprocess = new Subprocess(use_console);
+  auto subprocess = std::unique_ptr<Subprocess>(new Subprocess(use_console));
   if (!subprocess->Start(this, command)) {
-    delete subprocess;
     return 0;
   }
-  running_.push_back(subprocess);
-  return subprocess;
+  running_.push_back(std::move(subprocess));
+  return running_.back().get();
 }
 
 #ifdef NINJA_USE_PPOLL
@@ -225,9 +224,8 @@ bool SubprocessSet::DoWork() {
   std::vector<pollfd> fds;
   nfds_t nfds = 0;
 
-  for (std::vector<Subprocess*>::iterator i = running_.begin();
-       i != running_.end(); ++i) {
-    int fd = (*i)->fd_;
+  for (const auto& p : running_) {
+    int fd = p->fd_;
     if (fd < 0)
       continue;
     pollfd pfd = { fd, POLLIN | POLLPRI, 0 };
@@ -250,8 +248,7 @@ bool SubprocessSet::DoWork() {
     return true;
 
   nfds_t cur_nfd = 0;
-  for (std::vector<Subprocess*>::iterator i = running_.begin();
-       i != running_.end();) {
+  for (auto i = running_.begin(); i != running_.end();) {
     int fd = (*i)->fd_;
     if (fd < 0)
       continue;
@@ -259,7 +256,7 @@ bool SubprocessSet::DoWork() {
     if (fds[cur_nfd++].revents) {
       (*i)->OnPipeReady();
       if ((*i)->Done()) {
-        finished_.push(*i);
+        finished_.push(std::move(*i));
         i = running_.erase(i);
         continue;
       }
@@ -318,24 +315,20 @@ bool SubprocessSet::DoWork() {
 }
 #endif  // !defined(NINJA_USE_PPOLL)
 
-Subprocess* SubprocessSet::NextFinished() {
+std::unique_ptr<Subprocess> SubprocessSet::NextFinished() {
   if (finished_.empty())
     return nullptr;
-  Subprocess* subproc = finished_.front();
+  std::unique_ptr<Subprocess> subproc = std::move(finished_.front());
   finished_.pop();
   return subproc;
 }
 
 void SubprocessSet::Clear() {
-  for (std::vector<Subprocess*>::iterator i = running_.begin();
-       i != running_.end(); ++i)
+  for (auto i = running_.begin(); i != running_.end(); ++i)
     // Since the foreground process is in our process group, it will receive
     // the interruption signal (i.e. SIGINT or SIGTERM) at the same time as us.
     if (!(*i)->use_console_)
       kill(-(*i)->pid_, interrupted_);
-  for (std::vector<Subprocess*>::iterator i = running_.begin();
-       i != running_.end(); ++i)
-    delete *i;
   running_.clear();
 }
 

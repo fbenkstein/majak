@@ -15,6 +15,7 @@
 #ifndef NINJA_SUBPROCESS_H_
 #define NINJA_SUBPROCESS_H_
 
+#include <memory>
 #include <queue>
 #include <string>
 #include <vector>
@@ -87,11 +88,11 @@ struct SubprocessSet {
 
   Subprocess* Add(const std::string& command, bool use_console = false);
   bool DoWork();
-  Subprocess* NextFinished();
+  std::unique_ptr<Subprocess> NextFinished();
   void Clear();
 
-  std::vector<Subprocess*> running_;
-  std::queue<Subprocess*> finished_;
+  std::vector<std::unique_ptr<Subprocess>> running_;
+  std::queue<std::unique_ptr<Subprocess>> finished_;
 
 #ifdef _WIN32
   static BOOL WINAPI NotifyInterrupted(DWORD dwCtrlType);

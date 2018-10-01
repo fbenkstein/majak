@@ -224,16 +224,17 @@ BOOL WINAPI SubprocessSet::NotifyInterrupted(DWORD dwCtrlType) {
 }
 
 Subprocess* SubprocessSet::Add(const std::string& command, bool use_console) {
-  Subprocess* subprocess = new Subprocess(use_console);
+  auto subprocess = std::unique_ptr<Subprocess>(new Subprocess(use_console));
   if (!subprocess->Start(this, command)) {
-    delete subprocess;
     return 0;
   }
-  if (subprocess->child_)
-    running_.push_back(subprocess);
-  else
-    finished_.push(subprocess);
-  return subprocess;
+  if (subprocess->child_) {
+    running_.push_back(std::move(subprocess));
+    return running_.back().get();
+  } else {
+    finished_.push(std::move(subprocess));
+    return finished_.back().get();
+  }
 }
 
 bool SubprocessSet::DoWork() {
@@ -254,28 +255,28 @@ bool SubprocessSet::DoWork() {
   subproc->OnPipeReady();
 
   if (subproc->Done()) {
-    std::vector<Subprocess*>::iterator end =
-        remove(running_.begin(), running_.end(), subproc);
-    if (running_.end() != end) {
-      finished_.push(subproc);
-      running_.resize(end - running_.begin());
+    auto i =
+        std::find_if(running_.begin(), running_.end(),
+                     [subproc](const auto& p) { return p.get() == subproc; });
+    if (i != running_.end()) {
+      finished_.push(std::move(*i));
+      running_.erase(i);
     }
   }
 
   return false;
 }
 
-Subprocess* SubprocessSet::NextFinished() {
+std::unique_ptr<Subprocess> SubprocessSet::NextFinished() {
   if (finished_.empty())
     return nullptr;
-  Subprocess* subproc = finished_.front();
+  std::unique_ptr<Subprocess> subproc = std::move(finished_.front());
   finished_.pop();
   return subproc;
 }
 
 void SubprocessSet::Clear() {
-  for (std::vector<Subprocess*>::iterator i = running_.begin();
-       i != running_.end(); ++i) {
+  for (auto i = running_.begin(); i != running_.end(); ++i) {
     // Since the foreground process is in our process group, it will receive a
     // CTRL_C_EVENT or CTRL_BREAK_EVENT at the same time as us.
     if ((*i)->child_ && !(*i)->use_console_) {
@@ -285,9 +286,6 @@ void SubprocessSet::Clear() {
       }
     }
   }
-  for (std::vector<Subprocess*>::iterator i = running_.begin();
-       i != running_.end(); ++i)
-    delete *i;
   running_.clear();
 }
 
