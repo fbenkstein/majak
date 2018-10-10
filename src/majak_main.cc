@@ -34,7 +34,7 @@
 #include "getopt.h"
 #endif
 
-#include <flatbuffers/idl.h>
+#include <flatbuffers/minireflect.h>
 
 #include "manifest_parser.h"
 #include "ninja.h"
@@ -290,17 +290,9 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
     return 1;
   }
 
-  flatbuffers::IDLOptions idl_options;
-  idl_options.strict_json = true;
-  idl_options.indent_step = -1;
-  flatbuffers::Parser parser(idl_options);
-
-  if (!parser.Parse(BuildLog::kSchema))
-    Fatal("invalid schema");
-
-  std::string output;
   uint8_t size_buffer[sizeof(flatbuffers::uoffset_t)];
   std::vector<uint8_t> entry_buffer;
+  flatbuffers::ToStringVisitor to_string_visitor("", true, "");
 
   for (;;) {
     if (fread(size_buffer, 1, sizeof(size_buffer), file) !=
@@ -322,12 +314,12 @@ int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
       Fatal("failed to verify entry");
     }
 
-    if (flatbuffers::GenerateText(parser, entry_buffer.data(), &output)) {
-      std::cout << output << std::endl;
-    } else {
-      Fatal("failed to serialize entry");
-    }
-    output.clear();
+    flatbuffers::IterateFlatBuffer(entry_buffer.data(),
+                                   log::EntryHolder::MiniReflectTypeTable(),
+                                   &to_string_visitor);
+
+    std::cout << to_string_visitor.s << std::endl;
+    to_string_visitor.s.clear();
   }
 
   return 0;

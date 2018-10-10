@@ -340,6 +340,8 @@ add_custom_command(
         -o ${CMAKE_CURRENT_BINARY_DIR}
         --gen-object-api
         --scoped-enums
+        --gen-name-strings
+        --reflect-names
         ${CMAKE_CURRENT_SOURCE_DIR}/src/log.fbs
     COMMENT "[flatc] src/log.fbs"
 )
