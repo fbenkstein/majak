@@ -352,6 +352,9 @@ target_link_libraries(
     PRIVATE
     str_format_internal
 )
+if (NOT NINJA_HAVE_GETOPT)
+    target_link_libraries(libninja PRIVATE ninja-getopt)
+endif()
 target_compile_definitions(libninja PRIVATE ${ninja_private_compile_definitions})
 target_compile_options(libninja PUBLIC ${ninja_compile_options})
 target_compile_definitions(libninja PUBLIC ${ninja_compile_definitions})
@@ -367,15 +370,15 @@ target_include_directories(
 )
 
 add_executable(ninja src/main/ninja_main.cc)
-target_link_libraries(ninja libninja)
+target_link_libraries(ninja PRIVATE libninja)
 if (NOT NINJA_HAVE_GETOPT)
-    target_link_libraries(ninja ninja-getopt)
+    target_link_libraries(ninja PRIVATE ninja-getopt)
 endif()
 
 add_executable(majak src/main/majak_main.cc)
-target_link_libraries(majak libninja)
+target_link_libraries(majak PRIVATE libninja)
 if (NOT NINJA_HAVE_GETOPT)
-    target_link_libraries(majak ninja-getopt)
+    target_link_libraries(majak PRIVATE ninja-getopt)
 endif()
 
 if (NINJA_BUILD_TESTS)

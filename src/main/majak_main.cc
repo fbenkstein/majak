@@ -28,11 +28,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef NINJA_HAVE_GETOPT
 #include <getopt.h>
-#else
-#include "getopt.h"
-#endif
 
 #include <flatbuffers/minireflect.h>
 

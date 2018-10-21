@@ -24,11 +24,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef NINJA_HAVE_GETOPT
 #include <getopt.h>
-#else
-#include "getopt.h"
-#endif
 
 #include <ninja/manifest_parser.h>
 #include <ninja/ninja.h>
