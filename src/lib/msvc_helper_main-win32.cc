@@ -16,6 +16,7 @@
 
 #include "clparser.h"
 
+#include <ninja/filesystem.h>
 #include <ninja/util.h>
 
 #include <getopt.h>
@@ -53,23 +54,25 @@ void PushPathIntoEnvironment(const std::string& env_block) {
 void WriteDepFileOrDie(const char* object_path, const CLParser& parse) {
   std::string depfile_path = std::string(object_path) + ".d";
   FILE* depfile = fopen(depfile_path.c_str(), "w");
+  fs::error_code ignore_ec;
+
   if (!depfile) {
-    unlink(object_path);
+    fs::remove(object_path, ignore_ec);
     Fatal("opening %s: %s", depfile_path.c_str(), GetLastErrorString().c_str());
   }
   if (fprintf(depfile, "%s: ", object_path) < 0) {
-    unlink(object_path);
+    fs::remove(object_path, ignore_ec);
     fclose(depfile);
-    unlink(depfile_path.c_str());
+    fs::remove(depfile_path.c_str(), ignore_ec);
     Fatal("writing %s", depfile_path.c_str());
   }
   const std::set<std::string>& headers = parse.includes_;
   for (std::set<std::string>::const_iterator i = headers.begin();
        i != headers.end(); ++i) {
     if (fprintf(depfile, "%s\n", EscapeForDepfile(*i).c_str()) < 0) {
-      unlink(object_path);
+      fs::remove(object_path, ignore_ec);
       fclose(depfile);
-      unlink(depfile_path.c_str());
+      fs::remove(depfile_path.c_str(), ignore_ec);
       Fatal("writing %s", depfile_path.c_str());
     }
   }

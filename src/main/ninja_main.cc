@@ -26,6 +26,7 @@
 
 #include <getopt.h>
 
+#include <ninja/filesystem.h>
 #include <ninja/manifest_parser.h>
 #include <ninja/ninja.h>
 #include <ninja/version.h>
@@ -168,8 +169,10 @@ int ReadFlags(int* argc, char*** argv, Options* options, BuildConfig* config) {
     // can be piped into a file without this string showing up.
     if (!options.tool)
       printf("ninja: Entering directory `%s'\n", options.working_dir);
-    if (chdir(options.working_dir) < 0) {
-      Fatal("chdir to '%s' - %s", options.working_dir, strerror(errno));
+    fs::error_code ec;
+    fs::current_path(options.working_dir, ec);
+    if (ec) {
+      Fatal("chdir to '%s' - %s", options.working_dir, ec.message());
     }
   }
 

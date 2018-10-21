@@ -14,9 +14,9 @@
 
 #include "msvc_helper.h"
 
-#include <windows.h>
+#include <ninja/util.h>
 
-#include "util.h"
+#include <windows.h>
 
 namespace ninja {
 

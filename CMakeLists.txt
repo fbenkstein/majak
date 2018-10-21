@@ -407,8 +407,8 @@ if (NINJA_BUILD_TESTS)
         list(APPEND
             ninja_test_sources
 
-            src/includes_normalize_test.cc
-            src/msvc_helper_test.cc
+            src/tests/includes_normalize_test.cc
+            src/tests/msvc_helper_test.cc
         )
     endif()
 
@@ -465,6 +465,9 @@ if (NINJA_BUILD_TESTS)
             "${CMAKE_CURRENT_BINARY_DIR}/src"
         )
     endforeach()
+    if (NOT NINJA_HAVE_GETOPT)
+        target_link_libraries(manifest_parser_perftest ninja-getopt)
+    endif()
 
     if (Boost_FILESYSTEM_FOUND)
         target_include_directories(canon_perftest PRIVATE ${Boost_INCLUDE_DIRS})

@@ -18,6 +18,7 @@
 #include <numeric>
 
 #include <ninja/disk_interface.h>
+#include <ninja/filesystem.h>
 #include <ninja/graph.h>
 #include <ninja/manifest_parser.h>
 #include <ninja/metrics.h>
@@ -31,11 +32,11 @@
 
 #ifdef _WIN32
 #include <direct.h>
-#include "getopt.h"
 #else
-#include <getopt.h>
 #include <unistd.h>
 #endif
+
+#include <getopt.h>
 
 using namespace ninja;
 
@@ -103,8 +104,12 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  if (chdir(kManifestDir) < 0)
-    Fatal("chdir: %s", strerror(errno));
+  fs::error_code ec;
+  fs::current_path(kManifestDir, ec);
+
+  if (ec) {
+    Fatal("chdir: %s", ec.message());
+  }
 
   const int kNumRepetitions = 5;
   std::vector<int> times;

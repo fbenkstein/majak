@@ -36,6 +36,7 @@
 #include <ninja/ninja.h>
 #include <ninja/util.h>
 #include <ninja/version.h>
+#include <ninja/filesystem.h>
 
 using namespace ninja;
 
@@ -197,8 +198,10 @@ int CommandBuild(const char* working_dir, int argc, char** argv) {
     // Don't print this if a tool is being used, so that tool output
     // can be piped into a file without this string showing up.
     printf("majak: Entering directory `%s'\n", working_dir);
-    if (chdir(working_dir) < 0) {
-      Fatal("chdir to '%s' - %s", working_dir, strerror(errno));
+    fs::error_code ec;
+    fs::current_path(working_dir, ec);
+    if (ec) {
+      Fatal("chdir to '%s' - %s", working_dir, ec.message());
     }
   }
 
@@ -251,8 +254,13 @@ int CommandVersion(const char* = nullptr, int = 0, char** = nullptr) {
 }
 
 int CommandDebugDumpBuildLog(const char* working_dir, int argc, char** argv) {
-  if (working_dir && chdir(working_dir) < 0) {
-    Fatal("chdir to '%s' - %s", working_dir, strerror(errno));
+  fs::error_code ec;
+
+  if (working_dir) {
+    fs::current_path(working_dir, ec);
+    if (ec) {
+      Fatal("chdir to '%s' - %s", working_dir, ec.message());
+    }
   }
 
   std::string log_path = BuildLog::kFilename;

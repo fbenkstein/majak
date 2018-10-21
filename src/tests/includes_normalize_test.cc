@@ -14,13 +14,15 @@
 
 #include "includes_normalize.h"
 
+#include "test.h"
+
+#include "string_piece_util.h"
+
+#include <ninja/util.h>
+
 #include <algorithm>
 
 #include <direct.h>
-
-#include "string_piece_util.h"
-#include "test.h"
-#include "util.h"
 
 using namespace ninja;
 

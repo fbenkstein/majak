@@ -15,7 +15,8 @@
 #include "msvc_helper.h"
 
 #include "test.h"
-#include "util.h"
+
+#include <ninja/util.h>
 
 using namespace ninja;
 

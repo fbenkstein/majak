@@ -69,11 +69,6 @@ bool Truncate(const std::string& path, size_t size, std::string* err);
 
 #ifdef _MSC_VER
 #define fileno _fileno
-#define unlink _unlink
-#define chdir _chdir
-#define strtoull _strtoui64
-#define getcwd _getcwd
-#define PATH_MAX _MAX_PATH
 #endif
 
 #ifdef _WIN32

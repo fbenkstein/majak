@@ -14,11 +14,11 @@
 
 #ifdef _MSC_VER
 
+#include <ninja/util.h>
+
 #include <windows.h>
 
 #include <DbgHelp.h>
-
-#include "util.h"
 
 namespace ninja {
 

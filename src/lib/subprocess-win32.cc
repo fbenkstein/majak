@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "subprocess.h"
+#include <ninja/subprocess.h>
+
+#include <ninja/util.h>
 
 #include <assert.h>
 
 #include <algorithm>
 #include <cstdio>
-
-#include "util.h"
 
 namespace ninja {
 
