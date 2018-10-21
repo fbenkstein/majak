@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "build_log.h"
+#include <ninja/build_log.h>
 
-#include "log_generated.h"
-#include "log_schema.h"
+#include <ninja/log_generated.h>
+#include <ninja/log_schema.h>
 
-#include "build.h"
-#include "filesystem.h"
-#include "graph.h"
-#include "metrics.h"
-#include "state.h"
-#include "util.h"
+#include <ninja/build.h>
+#include <ninja/filesystem.h>
+#include <ninja/graph.h>
+#include <ninja/metrics.h>
+#include <ninja/state.h>
+#include <ninja/util.h>
 
 #include <cstdio>
 #include <cstring>

@@ -17,7 +17,7 @@
 
 #include <functional>
 
-#include "ninja_config.h"
+#include <ninja/ninja_config.h>
 
 #define NINJA_FILESYSTEM_INCLUDE_ <NINJA_FILESYSTEM_INCLUDE>
 #include NINJA_FILESYSTEM_INCLUDE_

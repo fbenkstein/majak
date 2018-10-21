@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "graphviz.h"
+#include <ninja/graphviz.h>
+
+#include <ninja/graph.h>
 
 #include <stdio.h>
 #include <algorithm>
-
-#include "graph.h"
 
 namespace ninja {
 

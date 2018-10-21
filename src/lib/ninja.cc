@@ -12,7 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ninja_config.h"
+#include <ninja/ninja_config.h>
+
+#include <ninja/browse.h>
+#include <ninja/build.h>
+#include <ninja/build_log.h>
+#include <ninja/clean.h>
+#include <ninja/debug_flags.h>
+#include <ninja/disk_interface.h>
+#include <ninja/graph.h>
+#include <ninja/graphviz.h>
+#include <ninja/manifest_parser.h>
+#include <ninja/metrics.h>
+#include <ninja/ninja.h>
+#include <ninja/state.h>
+#include <ninja/util.h>
+#include <ninja/version.h>
 
 #include <errno.h>
 #include <limits.h>
@@ -23,29 +38,11 @@
 #ifdef _WIN32
 #include <direct.h>
 #include <windows.h>
-#include "getopt.h"
-#elif defined(_AIX)
-#include <unistd.h>
-#include "getopt.h"
 #else
-#include <getopt.h>
 #include <unistd.h>
 #endif
 
-#include "browse.h"
-#include "build.h"
-#include "build_log.h"
-#include "clean.h"
-#include "debug_flags.h"
-#include "disk_interface.h"
-#include "graph.h"
-#include "graphviz.h"
-#include "manifest_parser.h"
-#include "metrics.h"
-#include "ninja.h"
-#include "state.h"
-#include "util.h"
-#include "version.h"
+#include <getopt.h>
 
 namespace ninja {
 bool NinjaMain::IsPathDead(std::string_view s) const {

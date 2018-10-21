@@ -12,17 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "build_log.h"
+#include <ninja/build_log.h>
+
+#include "test.h"
 
 #include <sys/stat.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
-#include "filesystem.h"
-#include "graph.h"
-#include "test.h"
-#include "util.h"
+#include <ninja/filesystem.h>
+#include <ninja/graph.h>
+#include <ninja/util.h>
 
 using namespace ninja;
 

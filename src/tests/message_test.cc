@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "message.h"
-#include "debug_flags.h"
-
-#include <cstdlib>
+#include <ninja/message.h>
+#include <ninja/debug_flags.h>
 
 #include <gtest/gtest.h>
+
+#include <cstdlib>
 
 TEST(MessageTest, Fatal) {
   auto f = [] { ninja::Fatal("the %s broke", "thing"); };

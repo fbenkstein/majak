@@ -14,18 +14,18 @@
 
 #include "clparser.h"
 
-#include <assert.h>
-#include <string.h>
-#include <algorithm>
-
-#include "metrics.h"
+#include <ninja/metrics.h>
 #include "string_piece_util.h"
 
 #ifdef _WIN32
-#include "includes_normalize.h"
+#include <ninja/includes_normalize.h>
 #else
-#include "util.h"
+#include <ninja/util.h>
 #endif
+
+#include <assert.h>
+#include <string.h>
+#include <algorithm>
 
 namespace ninja {
 

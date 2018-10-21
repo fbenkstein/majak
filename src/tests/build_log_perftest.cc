@@ -16,13 +16,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "build_log.h"
-#include "filesystem.h"
-#include "graph.h"
-#include "manifest_parser.h"
-#include "metrics.h"
-#include "state.h"
-#include "util.h"
+#include <ninja/build_log.h>
+#include <ninja/filesystem.h>
+#include <ninja/graph.h>
+#include <ninja/manifest_parser.h>
+#include <ninja/metrics.h>
+#include <ninja/state.h>
+#include <ninja/util.h>
 
 #ifndef _WIN32
 #include <unistd.h>

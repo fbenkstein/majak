@@ -360,8 +360,6 @@ target_include_directories(
     "${CMAKE_CURRENT_BINARY_DIR}/include"
     ext/flatbuffers/include
     PRIVATE
-    include/ninja
-    "${CMAKE_CURRENT_BINARY_DIR}/include/ninja"
     src/lib
     "${CMAKE_CURRENT_BINARY_DIR}/src/lib"
 )
@@ -414,8 +412,6 @@ if (NINJA_BUILD_TESTS)
     target_include_directories(
         ninja_test
         PRIVATE
-        include/ninja
-        "${CMAKE_CURRENT_BINARY_DIR}/include/ninja"
         src/lib
     )
 
@@ -445,8 +441,6 @@ if (NINJA_BUILD_TESTS)
         target_link_libraries(${perftest_name} libninja)
         target_include_directories(${perftest_name}
             PRIVATE
-            include/ninja
-            ${CMAKE_CURRENT_BINARY_DIR}/include/ninja
             src/lib
         )
     endforeach()
@@ -462,8 +456,6 @@ if (NINJA_BUILD_TESTS)
         target_include_directories(
             ${perftest_name}
             PRIVATE
-            include/ninja
-            ${CMAKE_CURRENT_BINARY_DIR}/include/ninja
             src
             "${CMAKE_CURRENT_BINARY_DIR}/src"
         )

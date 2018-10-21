@@ -14,8 +14,9 @@
 
 #include "clparser.h"
 
+#include <ninja/util.h>
+
 #include "test.h"
-#include "util.h"
 
 using namespace ninja;
 

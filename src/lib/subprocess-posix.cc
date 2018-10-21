@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ninja_config.h"
-#include "subprocess.h"
+#include <ninja/ninja_config.h>
+
+#include <ninja/subprocess.h>
+
+#include <ninja/util.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -26,8 +29,6 @@
 #include <unistd.h>
 
 extern char** environ;
-
-#include "util.h"
 
 namespace ninja {
 

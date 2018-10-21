@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "state.h"
-#include "graph.h"
+#include <ninja/state.h>
+#include <ninja/graph.h>
+
 #include "test.h"
 
 using namespace ninja;

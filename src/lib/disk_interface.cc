@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "disk_interface.h"
+#include <ninja/disk_interface.h>
 
 #include <algorithm>
 
@@ -28,8 +28,8 @@
 #include <sstream>
 #endif
 
-#include "metrics.h"
-#include "util.h"
+#include <ninja/metrics.h>
+#include <ninja/util.h>
 
 namespace ninja {
 

@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "version.h"
+#include <ninja/version.h>
+
+#include <ninja/util.h>
 
 #include <stdlib.h>
-
-#include "util.h"
 
 namespace ninja {
 

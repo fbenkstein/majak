@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "graph.h"
-#include "build.h"
+#include <ninja/graph.h>
+#include <ninja/build.h>
 
 #include "test.h"
 

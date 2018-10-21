@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "util.h"
+#include <ninja/util.h>
 
-#include "filesystem.h"
+#include <ninja/filesystem.h>
+#include <ninja/metrics.h>
 
 #ifdef __CYGWIN__
 #include <io.h>
@@ -53,8 +54,6 @@
 #elif defined(linux) || defined(__GLIBC__)
 #include <sys/sysinfo.h>
 #endif
-
-#include "metrics.h"
 
 namespace ninja {
 bool CanonicalizePath(std::string* path, uint64_t* slash_bits,

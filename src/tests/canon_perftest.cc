@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ninja/filesystem.h>
+#include <ninja/metrics.h>
+#include <ninja/util.h>
+
 #include <benchmark/benchmark.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
 #include <string>
 
-#include "filesystem.h"
-#include "metrics.h"
-#include "util.h"
 
 using namespace ninja;
 

@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "state.h"
+#include <ninja/state.h>
 
 #include <assert.h>
 #include <stdio.h>
 
-#include "graph.h"
-#include "metrics.h"
-#include "util.h"
+#include <ninja/graph.h>
+#include <ninja/metrics.h>
+#include <ninja/util.h>
 
 namespace ninja {
 

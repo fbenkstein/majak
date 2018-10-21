@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "clparser.h"
+
+#include <ninja/metrics.h>
+
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "clparser.h"
-#include "metrics.h"
 
 using namespace ninja;
 

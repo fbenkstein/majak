@@ -19,10 +19,10 @@
 
 #include <stdlib.h>
 
-#include "build_log.h"
-#include "graph.h"
-#include "manifest_parser.h"
-#include "util.h"
+#include <ninja/build_log.h>
+#include <ninja/graph.h>
+#include <ninja/manifest_parser.h>
+#include <ninja/util.h>
 
 using namespace ninja;
 

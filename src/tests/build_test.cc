@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "build.h"
+#include <ninja/build.h>
+
+#include <ninja/build_log.h>
+#include <ninja/graph.h>
+
+#include "test.h"
 
 #include <assert.h>
-
-#include "build_log.h"
-#include "graph.h"
-#include "test.h"
 
 using namespace ninja;
 

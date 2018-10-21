@@ -19,8 +19,9 @@
 #include <windows.h>
 #endif
 
-#include "disk_interface.h"
-#include "graph.h"
+#include <ninja/disk_interface.h>
+#include <ninja/graph.h>
+
 #include "test.h"
 
 using namespace ninja;

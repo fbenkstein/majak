@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "browse.h"
-#include "ninja_config.h"
+#include <ninja/ninja_config.h>
+
+#include <ninja/browse.h>
+
+#include "browse_py.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <vector>
-
-#include "browse_py.h"
 
 namespace ninja {
 

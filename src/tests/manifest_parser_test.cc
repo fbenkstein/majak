@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "manifest_parser.h"
+#include <ninja/manifest_parser.h>
+
+#include <ninja/graph.h>
+#include <ninja/state.h>
 
 #include <map>
 #include <vector>
 
-#include "graph.h"
-#include "state.h"
 #include "test.h"
 
 using namespace ninja;

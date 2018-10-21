@@ -12,7 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "build.h"
+#include <ninja/build.h>
+
+#include "depfile_parser.h"
+#include "clparser.h"
+
+#include <ninja/build_log.h>
+#include <ninja/debug_flags.h>
+#include <ninja/disk_interface.h>
+#include <ninja/graph.h>
+#include <ninja/state.h>
+#include <ninja/subprocess.h>
+#include <ninja/util.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -29,16 +40,6 @@
 #if defined(__SVR4) && defined(__sun)
 #include <sys/termios.h>
 #endif
-
-#include "build_log.h"
-#include "clparser.h"
-#include "debug_flags.h"
-#include "depfile_parser.h"
-#include "disk_interface.h"
-#include "graph.h"
-#include "state.h"
-#include "subprocess.h"
-#include "util.h"
 
 namespace ninja {
 

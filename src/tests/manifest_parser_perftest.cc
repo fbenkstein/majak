@@ -17,6 +17,13 @@
 
 #include <numeric>
 
+#include <ninja/disk_interface.h>
+#include <ninja/graph.h>
+#include <ninja/manifest_parser.h>
+#include <ninja/metrics.h>
+#include <ninja/state.h>
+#include <ninja/util.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,13 +36,6 @@
 #include <getopt.h>
 #include <unistd.h>
 #endif
-
-#include "disk_interface.h"
-#include "graph.h"
-#include "manifest_parser.h"
-#include "metrics.h"
-#include "state.h"
-#include "util.h"
 
 using namespace ninja;
 

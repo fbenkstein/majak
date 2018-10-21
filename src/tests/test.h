@@ -15,11 +15,11 @@
 #ifndef NINJA_TEST_H_
 #define NINJA_TEST_H_
 
-#include "disk_interface.h"
-#include "filesystem.h"
-#include "manifest_parser.h"
-#include "state.h"
-#include "util.h"
+#include <ninja/disk_interface.h>
+#include <ninja/filesystem.h>
+#include <ninja/manifest_parser.h>
+#include <ninja/state.h>
+#include <ninja/util.h>
 
 #include <gtest/gtest.h>
 

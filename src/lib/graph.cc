@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "graph.h"
+#include <ninja/graph.h>
+
+#include "depfile_parser.h"
+
+#include <ninja/build_log.h>
+#include <ninja/debug_flags.h>
+#include <ninja/disk_interface.h>
+#include <ninja/manifest_parser.h>
+#include <ninja/metrics.h>
+#include <ninja/state.h>
+#include <ninja/util.h>
 
 #include <assert.h>
 #include <stdio.h>
-
-#include "build_log.h"
-#include "debug_flags.h"
-#include "depfile_parser.h"
-#include "disk_interface.h"
-#include "manifest_parser.h"
-#include "metrics.h"
-#include "state.h"
-#include "util.h"
 
 namespace ninja {
 

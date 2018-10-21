@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "build_log.h"
+#include <ninja/build_log.h>
 
-#include "log_generated.h"
-
-#include "filesystem.h"
 #include "test.h"
-#include "util.h"
+
+#include <ninja/filesystem.h>
+#include <ninja/util.h>
 
 #include <flatbuffers/flatbuffers.h>
 

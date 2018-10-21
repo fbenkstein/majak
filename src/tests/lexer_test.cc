@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "lexer.h"
+#include <ninja/lexer.h>
 
-#include "eval_env.h"
 #include "test.h"
+
+#include <ninja/eval_env.h>
 
 using namespace ninja;
 

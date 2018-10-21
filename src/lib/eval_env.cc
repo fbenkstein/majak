@@ -14,7 +14,7 @@
 
 #include <assert.h>
 
-#include "eval_env.h"
+#include <ninja/eval_env.h>
 
 namespace ninja {
 
