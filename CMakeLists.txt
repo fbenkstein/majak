@@ -87,8 +87,8 @@ add_feature_info(
 if (NINJA_BUILD_TESTS)
     enable_testing()
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    add_subdirectory(ext/gtest EXCLUDE_FROM_ALL)
-    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ext/gtest/CMakeLists.txt")
+    add_subdirectory(third_party/gtest EXCLUDE_FROM_ALL)
+    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/gtest/CMakeLists.txt")
         message(
             SEND_ERROR
             [=[
@@ -101,15 +101,15 @@ if (NINJA_BUILD_TESTS)
     set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
     set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
     set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
-    add_subdirectory(ext/benchmark EXCLUDE_FROM_ALL)
+    add_subdirectory(third_party/benchmark EXCLUDE_FROM_ALL)
 endif()
 
 set(FLATBUFFERS_INSTALL OFF CACHE BOOL "" FORCE)
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(FLATBUFFERS_LIBCXX_WITH_CLANG OFF CACHE BOOL "" FORCE)
-add_subdirectory(ext/flatbuffers EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/flatbuffers EXCLUDE_FROM_ALL)
 
-add_subdirectory(ext/abseil EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/abseil EXCLUDE_FROM_ALL)
 
 if (MSVC)
     fix_default_msvc_settings()
@@ -360,7 +360,7 @@ target_include_directories(
     PUBLIC
     include
     "${CMAKE_CURRENT_BINARY_DIR}/include"
-    ext/flatbuffers/include
+    third_party/flatbuffers/include
     PRIVATE
     src/lib
     "${CMAKE_CURRENT_BINARY_DIR}/src/lib"

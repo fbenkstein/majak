@@ -1,16 +1,16 @@
 [submodule "ext/gtest"]
-	path = ext/gtest
+	path = third_party/gtest
 	url = https://github.com/google/googletest.git
 	shallow = true
 [submodule "ext/benchmark"]
-	path = ext/benchmark
+	path = third_party/benchmark
 	url = https://github.com/google/benchmark.git
 [submodule "ext/flatbuffers"]
-	path = ext/flatbuffers
+	path = third_party/flatbuffers
 	url = https://github.com/google/flatbuffers.git
 [submodule "ext/lua-argparse"]
-	path = ext/lua-argparse
+	path = third_party/lua-argparse
 	url = https://github.com/mpeterv/argparse.git
 [submodule "ext/abseil"]
-	path = ext/abseil
+	path = third_party/abseil
 	url = https://github.com/abseil/abseil-cpp.git
