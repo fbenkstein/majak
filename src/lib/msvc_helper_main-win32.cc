@@ -14,15 +14,16 @@
 
 #include "msvc_helper.h"
 
+#include "clparser.h"
+
+#include <ninja/util.h>
+
+#include <getopt.h>
+
 #include <fcntl.h>
 #include <io.h>
 #include <stdio.h>
 #include <windows.h>
-
-#include "clparser.h"
-#include "util.h"
-
-#include "getopt.h"
 
 namespace ninja {
 

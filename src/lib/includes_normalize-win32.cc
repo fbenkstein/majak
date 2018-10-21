@@ -14,13 +14,14 @@
 
 #include "includes_normalize.h"
 
-#include <string_view>
 #include "string_piece_util.h"
-#include "util.h"
+
+#include <ninja/util.h>
 
 #include <algorithm>
 #include <iterator>
 #include <sstream>
+#include <string_view>
 
 #include <windows.h>
 

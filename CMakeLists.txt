@@ -30,10 +30,12 @@ message(STATUS "NINJA_FILESYSTEM_NAMESPACE: ${NINJA_FILESYSTEM_NAMESPACE}")
 message(STATUS "NINJA_FILESYSTEM_LIBRARY: ${NINJA_FILESYSTEM_LIBRARY}")
 
 if (NINJA_RE2C_EXECUTABLE)
+    message(STATUS "RE2C: ${NINJA_RE2C_EXECUTABLE}")
     add_executable(RE2C::RE2C IMPORTED)
     set_property(TARGET RE2C::RE2C PROPERTY IMPORTED_LOCATION "${RE2C_EXECUTABLE}")
     set(NINJA_SYSTEM_RE2C TRUE)
 else()
+    message(STATUS "RE2C: <built from third party sources>")
     add_subdirectory(third_party/re2c EXCLUDE_FROM_ALL)
 endif()
 
