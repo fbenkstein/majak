@@ -16,6 +16,7 @@
 #define NINJA_UTIL_H_
 
 #include <cstdint>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -46,6 +47,7 @@ int ReadFile(const std::string& path, std::string* contents, std::string* err);
 
 /// Mark a file descriptor to not be inherited on exec()s.
 void SetCloseOnExec(int fd);
+void SetCloseOnExec(FILE* file);
 
 bool islatinalpha(int c);
 
@@ -66,10 +68,6 @@ std::string ElideMiddle(const std::string& str, size_t width);
 
 /// Truncates a file to the given size.
 bool Truncate(const std::string& path, size_t size, std::string* err);
-
-#ifdef _MSC_VER
-#define fileno _fileno
-#endif
 
 #ifdef _WIN32
 /// Convert the value returned by GetLastError() into a string.

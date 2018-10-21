@@ -375,6 +375,14 @@ void SetCloseOnExec(int fd) {
 #endif  // ! _WIN32
 }
 
+void SetCloseOnExec(FILE* file) {
+#ifdef _WIN32
+  return SetCloseOnExec(_fileno(file));
+#else
+  return SetCloseOnExec(fileno(file));
+#endif
+}
+
 #ifdef _WIN32
 std::string GetLastErrorString() {
   DWORD err = GetLastError();

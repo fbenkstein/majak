@@ -189,7 +189,7 @@ bool BuildLog::OpenForWrite(const std::string& path, const BuildLogUser& user,
   // Set the buffer size to this and flush the file buffer after every record
   // to make sure records aren't written partially.
   setvbuf(log_file_, nullptr, _IOLBF, kMaxRecordSize);
-  SetCloseOnExec(fileno(log_file_));
+  SetCloseOnExec(log_file_);
 
   // Opening a file in append mode doesn't set the file pointer to the file's
   // end on Windows. Do that explicitly.
