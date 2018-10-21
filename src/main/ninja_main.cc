@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ninja_config.h"
+#include <ninja/ninja_config.h>
 
 #include <limits.h>
 
@@ -30,9 +30,9 @@
 #include "getopt.h"
 #endif
 
-#include "manifest_parser.h"
-#include "ninja.h"
-#include "version.h"
+#include <ninja/manifest_parser.h>
+#include <ninja/ninja.h>
+#include <ninja/version.h>
 
 using namespace ninja;
 

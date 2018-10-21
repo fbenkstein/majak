@@ -63,11 +63,6 @@ option(
     "Build ninja tests and benchmarks."
     ON
 )
-option(
-    NINJA_SHARED_FOR_TESTS
-    "Build a shared library for tests to reduce relinking."
-    ninja_shared_for_tests_default
-)
 if (NINJA_FILESYSTEM_NAMESPACE STREQUAL "boost::filesystem")
     set(NINJA_ENABLE_EXCEPTIONS ON CACHE INTERNAL FORCE "")
 else()
@@ -123,43 +118,43 @@ endif()
 set(
     ninja_sources
 
-    src/build.cc
-    src/build_log.cc
-    src/clean.cc
-    src/clparser.cc
-    src/debug_flags.cc
-    src/disk_interface.cc
-    src/eval_env.cc
-    src/graph.cc
-    src/graphviz.cc
-    src/line_printer.cc
-    src/manifest_parser.cc
-    src/message.cc
-    src/metrics.cc
-    src/ninja.cc
-    src/state.cc
-    src/string_piece_util.cc
-    src/util.cc
-    src/version.cc
+    src/lib/build.cc
+    src/lib/build_log.cc
+    src/lib/clean.cc
+    src/lib/clparser.cc
+    src/lib/debug_flags.cc
+    src/lib/disk_interface.cc
+    src/lib/eval_env.cc
+    src/lib/graph.cc
+    src/lib/graphviz.cc
+    src/lib/line_printer.cc
+    src/lib/manifest_parser.cc
+    src/lib/message.cc
+    src/lib/metrics.cc
+    src/lib/ninja.cc
+    src/lib/state.cc
+    src/lib/string_piece_util.cc
+    src/lib/util.cc
+    src/lib/version.cc
 )
 
 if (RE2C_FOUND AND RE2C_VERSION VERSION_GREATER 0.11.3)
     re2c_target(
         NAME re2c-depfile_parser
-        INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/depfile_parser.in.cc
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/depfile_parser.cc
+        INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/depfile_parser.in.cc
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/lib/depfile_parser.cc
         OPTIONS -b -i --no-generation-date
     )
-    list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/depfile_parser.cc)
+    list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/src/lib/depfile_parser.cc)
     re2c_target(
         NAME re2c-lexer
-        INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.in.cc
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lexer.cc
+        INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/lexer.in.cc
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/lib/lexer.cc
         OPTIONS -b -i --no-generation-date
     )
-    list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/lexer.cc)
+    list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/src/lib/lexer.cc)
 else()
-    list(APPEND ninja_sources src/depfile_parser.cc src/lexer.cc)
+    list(APPEND ninja_sources src/lib/depfile_parser.cc src/lib/lexer.cc)
 endif()
 
 set_package_properties(RE2C PROPERTIES
@@ -172,17 +167,17 @@ if (WIN32)
     list(APPEND
         ninja_sources
 
-        src/includes_normalize-win32.cc
-        src/msvc_helper_main-win32.cc
-        src/msvc_helper-win32.cc
-        src/minidump-win32.cc
-        src/subprocess-win32.cc
+        src/lib/includes_normalize-win32.cc
+        src/lib/msvc_helper_main-win32.cc
+        src/lib/msvc_helper-win32.cc
+        src/lib/minidump-win32.cc
+        src/lib/subprocess-win32.cc
     )
 else()
     list(APPEND
         ninja_sources
 
-        src/subprocess-posix.cc
+        src/lib/subprocess-posix.cc
     )
 endif()
 
@@ -198,17 +193,10 @@ check_cxx_source_compiles(
     NINJA_HAVE_GETOPT
 )
 
-if (NOT NINJA_HAVE_GETOPT)
-    set(NINJA_OWN_GETOPT TRUE)
-    list(APPEND ninja_sources src/getopt.c)
-else()
-    set(NINJA_OWN_GETOPT FALSE)
-endif()
-
 add_feature_info(
     custom_getopt
-    "${NINJA_OWN_GETOPT}"
-    "custom version of getopt and getopt_long."
+    "${NINJA_HAVE_GETOPT}"
+    "use system version of getopt"
 )
 
 if (MSVC)
@@ -245,7 +233,6 @@ else()
         -Wno-missing-field-initializers
         -Wno-unused-parameter
         -Wno-implicit-fallthrough
-        -iquote "${CMAKE_CURRENT_SOURCE_DIR}/src"
     )
 
     if (NOT NINJA_ENABLE_EXCEPTIONS)
@@ -298,46 +285,42 @@ endif()
 if (PYTHONINTERP_FOUND AND NOT WIN32)
     set(NINJA_PYTHON "${PYTHON_EXECUTABLE}")
     set(NINJA_HAVE_BROWSE TRUE)
-    list(APPEND ninja_sources src/browse.cc)
 
     add_custom_command(
-        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/lib/browse_py.h"
         DEPENDS src/browse.py cmake/inline.cmake
         COMMAND
             "${CMAKE_COMMAND}"
             -DINPUT=src/browse.py
-            -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
+            -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/src/lib/browse_py.h"
             -DVARNAME=kBrowsePy
             -P cmake/inline.cmake
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         COMMENT "[inline] src/browse.py"
     )
-    set_property(
-        SOURCE src/browse.cc
-        PROPERTY
-        OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/browse_py.h"
-    )
+    list(APPEND ninja_sources src/lib/browse.cc "${CMAKE_CURRENT_BINARY_DIR}/src/lib/browse_py.h")
 endif()
 
 add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/log_schema.h"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/lib/log_schema.h"
     DEPENDS src/log.fbs cmake/inline.cmake
     COMMAND
         "${CMAKE_COMMAND}"
         -DINPUT=src/log.fbs
-        -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/log_schema.h"
+        -DOUTPUT="${CMAKE_CURRENT_BINARY_DIR}/src/lib/log_schema.h"
         -DVARNAME=kBuildLogSchema
         -P cmake/inline.cmake
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "[inline] src/log.fbs"
 )
+list(APPEND ninja_sources "${CMAKE_CURRENT_BINARY_DIR}/src/lib/log_schema.h")
 add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/log_generated.h"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/ninja/log_generated.h"
     DEPENDS src/log.fbs
     COMMAND
         flatc
         --cpp
-        -o ${CMAKE_CURRENT_BINARY_DIR}
+        -o ${CMAKE_CURRENT_BINARY_DIR}/include/ninja
         --gen-object-api
         --scoped-enums
         --gen-name-strings
@@ -345,78 +328,76 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/log.fbs
     COMMENT "[flatc] src/log.fbs"
 )
-set_property(
-    SOURCE src/build_log.cc
-    PROPERTY
-    OBJECT_DEPENDS
-        "${CMAKE_CURRENT_BINARY_DIR}/log_schema.h"
-        "${CMAKE_CURRENT_BINARY_DIR}/log_generated.h"
-)
-
+list(APPEND ninja_sources "${CMAKE_CURRENT_BINARY_DIR}/include/ninja/log_generated.h")
 set_package_properties(PythonInterp PROPERTIES
     TYPE OPTIONAL
     DESCRIPTION "Python language interpreter."
     PURPOSE "Enables manifest browser."
 )
 
-configure_file(src/ninja_config.in.h ninja_config.h)
+configure_file(include/ninja/ninja_config.in.h include/ninja/ninja_config.h)
 
-add_library(libninja-config INTERFACE)
-target_compile_options(libninja-config INTERFACE ${ninja_compile_options})
-target_compile_definitions(libninja-config INTERFACE ${ninja_compile_definitions})
-target_include_directories(libninja-config INTERFACE "${CMAKE_CURRENT_BINARY_DIR}" ext/flatbuffers/include)
-target_link_libraries(libninja-config INTERFACE flatbuffers absl::strings "${NINJA_FILESYSTEM_LIBRARY}")
-# TODO: this seems to be a bug in abseil's CMake
-target_link_libraries(libninja-config INTERFACE str_format_internal)
+add_library(ninja-getopt STATIC EXCLUDE_FROM_ALL src/getopt/getopt.c)
+target_include_directories(ninja-getopt PUBLIC src/getopt)
 
-if (NINJA_SHARED_FOR_TESTS)
-    add_library(libninja-objects OBJECT ${ninja_sources})
-    target_link_libraries(libninja-objects PUBLIC libninja-config)
-    target_compile_definitions(libninja-objects PRIVATE ${ninja_private_compile_definitions})
+add_library(libninja STATIC ${ninja_sources})
+target_link_libraries(
+    libninja
+    PUBLIC
+    flatbuffers
+    absl::strings
+    "${NINJA_FILESYSTEM_LIBRARY}"
+    PRIVATE
+    str_format_internal
+)
+target_compile_definitions(libninja PRIVATE ${ninja_private_compile_definitions})
+target_compile_options(libninja PUBLIC ${ninja_compile_options})
+target_compile_definitions(libninja PUBLIC ${ninja_compile_definitions})
+target_include_directories(
+    libninja
+    PUBLIC
+    include
+    "${CMAKE_CURRENT_BINARY_DIR}/include"
+    ext/flatbuffers/include
+    PRIVATE
+    include/ninja
+    "${CMAKE_CURRENT_BINARY_DIR}/include/ninja"
+    src/lib
+    "${CMAKE_CURRENT_BINARY_DIR}/src/lib"
+)
 
-    add_library(libninja STATIC $<TARGET_OBJECTS:libninja-objects>)
-    target_link_libraries(libninja PUBLIC libninja-config)
-    set_property(TARGET libninja PROPERTY PREFIX "")
-
-    set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
-    set_property(TARGET libninja-objects PROPERTY POSITION_INDEPENDENT_CODE ON)
-    add_library(libninja-for-tests SHARED $<TARGET_OBJECTS:libninja-objects>)
-    target_link_libraries(libninja-for-tests PUBLIC libninja-config)
-    set_property(TARGET libninja-for-tests PROPERTY PREFIX "")
-else()
-    add_library(libninja STATIC ${ninja_sources})
-    target_link_libraries(libninja PUBLIC libninja-config)
-    target_compile_definitions(libninja PRIVATE ${ninja_private_compile_definitions})
-
-    add_library(libninja-for-tests ALIAS libninja)
+add_executable(ninja src/main/ninja_main.cc)
+target_link_libraries(ninja libninja)
+if (NOT NINJA_HAVE_GETOPT)
+    target_link_libraries(ninja PRIVATE ninja-getopt)
 endif()
 
-add_executable(ninja src/ninja_main.cc)
-target_link_libraries(ninja libninja)
-
-add_executable(majak src/majak_main.cc)
+add_executable(majak src/main/majak_main.cc)
 target_link_libraries(majak libninja)
+if (NOT NINJA_HAVE_GETOPT)
+    target_link_libraries(majak PRIVATE ninja-getopt)
+endif()
 
 if (NINJA_BUILD_TESTS)
     set(
         ninja_test_sources
 
-        src/build_log_test.cc
-        src/build_test.cc
-        src/clean_test.cc
-        src/clparser_test.cc
-        src/depfile_parser_test.cc
-        src/deps_log_test.cc
-        src/disk_interface_test.cc
-        src/graph_test.cc
-        src/lexer_test.cc
-        src/manifest_parser_test.cc
-        src/message_test.cc
-        src/state_test.cc
-        src/string_piece_util_test.cc
-        src/subprocess_test.cc
-        src/test.cc
-        src/util_test.cc
+        src/tests/build_log_test.cc
+        src/tests/build_test.cc
+        src/tests/clean_test.cc
+        src/tests/clparser_test.cc
+        src/tests/depfile_parser_test.cc
+        src/tests/deps_log_test.cc
+        src/tests/disk_interface_test.cc
+        src/tests/graph_test.cc
+        src/tests/lexer_test.cc
+        src/tests/manifest_parser_test.cc
+        src/tests/message_test.cc
+        src/tests/state_test.cc
+        src/tests/string_piece_util_test.cc
+        src/tests/subprocess_test.cc
+        src/tests/test.cc
+        src/tests/util_test.cc
     )
 
     if (WIN32)
@@ -429,7 +410,15 @@ if (NINJA_BUILD_TESTS)
     endif()
 
     add_executable(ninja_test ${ninja_test_sources})
-    target_link_libraries(ninja_test ${ninja_filesystem_library} libninja-for-tests gtest gtest_main)
+    target_link_libraries(ninja_test ${ninja_filesystem_library} libninja gtest gtest_main)
+    target_include_directories(
+        ninja_test
+        PRIVATE
+        include/ninja
+        "${CMAKE_CURRENT_BINARY_DIR}/include/ninja"
+        src/lib
+    )
+
     if (COMMAND gtest_discover_tests)
         gtest_discover_tests(ninja_test)
     else()
@@ -452,18 +441,32 @@ if (NINJA_BUILD_TESTS)
     )
 
     foreach(perftest_name IN LISTS ninja_perftests)
-        add_executable(${perftest_name} src/${perftest_name}.cc)
-        target_link_libraries(${perftest_name} libninja-for-tests)
+        add_executable(${perftest_name} src/tests/${perftest_name}.cc)
+        target_link_libraries(${perftest_name} libninja)
+        target_include_directories(${perftest_name}
+            PRIVATE
+            include/ninja
+            ${CMAKE_CURRENT_BINARY_DIR}/include/ninja
+            src/lib
+        )
     endforeach()
     set_property(
-        SOURCE src/manifest_parser_perftest.cc
+        SOURCE src/tests/manifest_parser_perftest.cc
         PROPERTY
         COMPILE_DEFINITIONS "CMAKE_CURRENT_SOURCE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\""
     )
 
     foreach(perftest_name IN LISTS ninja_bench_perftests)
-        add_executable(${perftest_name} src/${perftest_name}.cc)
-        target_link_libraries(${perftest_name} libninja-for-tests benchmark)
+        add_executable(${perftest_name} src/tests/${perftest_name}.cc)
+        target_link_libraries(${perftest_name} libninja benchmark)
+        target_include_directories(
+            ${perftest_name}
+            PRIVATE
+            include/ninja
+            ${CMAKE_CURRENT_BINARY_DIR}/include/ninja
+            src
+            "${CMAKE_CURRENT_BINARY_DIR}/src"
+        )
     endforeach()
 
     if (Boost_FILESYSTEM_FOUND)

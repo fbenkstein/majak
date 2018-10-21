@@ -20,10 +20,9 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "hash_map.h"
-#include "log_generated.h"
-#include "timestamp.h"
-#include "util.h"  // uint64_t
+#include <ninja/hash_map.h>
+#include <ninja/log_generated.h>
+#include <ninja/timestamp.h>
 
 namespace ninja {
 
