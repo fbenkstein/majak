@@ -14,3 +14,6 @@
 [submodule "ext/abseil"]
 	path = third_party/abseil
 	url = https://github.com/abseil/abseil-cpp.git
+[submodule "third_party/re2c/re2c"]
+	path = third_party/re2c/re2c
+	url = https://github.com/skvadrik/re2c.git

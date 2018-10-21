@@ -1,0 +1,2 @@
+#define HAVE_STDINT_H 1
+#define PACKAGE_VERSION "@RE2C_VERSION@"

@@ -4,7 +4,6 @@ cmake_policy(SET CMP0063 NEW)
 project(majak LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
-find_package(RE2C)
 find_package(PythonInterp 3)
 if (NOT PYTHONINTERP_FOUND)
     find_package(PythonInterp 2.7)
@@ -13,11 +12,13 @@ find_package(Doxygen OPTIONAL_COMPONENTS dot)
 find_program(NINJA_ASCIIDOC_EXECUTABLE asciidoc)
 find_program(NINJA_XSLTPROC_EXECUTABLE xsltproc)
 find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
+find_program(NINJA_RE2C_EXECUTABLE re2c)
 
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 include(FeatureSummary)
 include(GoogleTest)
+include(RE2CTarget)
 include(utils)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -27,6 +28,14 @@ ninja_find_filesystem_library()
 message(STATUS "NINJA_FILESYSTEM_INCLUDE: ${NINJA_FILESYSTEM_INCLUDE}")
 message(STATUS "NINJA_FILESYSTEM_NAMESPACE: ${NINJA_FILESYSTEM_NAMESPACE}")
 message(STATUS "NINJA_FILESYSTEM_LIBRARY: ${NINJA_FILESYSTEM_LIBRARY}")
+
+if (NINJA_RE2C_EXECUTABLE)
+    add_executable(RE2C::RE2C IMPORTED)
+    set_property(TARGET RE2C::RE2C PROPERTY IMPORTED_LOCATION "${RE2C_EXECUTABLE}")
+    set(NINJA_SYSTEM_RE2C TRUE)
+else()
+    add_subdirectory(third_party/re2c EXCLUDE_FROM_ALL)
+endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
     add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC)
@@ -140,24 +149,20 @@ set(
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/lib")
 
-if (RE2C_FOUND AND RE2C_VERSION VERSION_GREATER 0.11.3)
-    re2c_target(
-        NAME re2c-depfile_parser
-        INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/depfile_parser.in.cc
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/lib/depfile_parser.cc
-        OPTIONS -b -i --no-generation-date
-    )
-    list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/src/lib/depfile_parser.cc)
-    re2c_target(
-        NAME re2c-lexer
-        INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/lexer.in.cc
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/lib/lexer.cc
-        OPTIONS -b -i --no-generation-date
-    )
-    list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/src/lib/lexer.cc)
-else()
-    list(APPEND ninja_sources src/lib/depfile_parser.cc src/lib/lexer.cc)
-endif()
+re2c_target(
+    NAME re2c-depfile_parser
+    INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/depfile_parser.in.cc
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/lib/depfile_parser.cc
+    OPTIONS -b -i --no-generation-date
+)
+list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/src/lib/depfile_parser.cc)
+re2c_target(
+    NAME re2c-lexer
+    INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/lexer.in.cc
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/lib/lexer.cc
+    OPTIONS -b -i --no-generation-date
+)
+list(APPEND ninja_sources ${CMAKE_CURRENT_BINARY_DIR}/src/lib/lexer.cc)
 
 set_package_properties(RE2C PROPERTIES
     TYPE OPTIONAL
@@ -193,12 +198,6 @@ check_cxx_source_compiles(
     }
     ]=]
     NINJA_HAVE_GETOPT
-)
-
-add_feature_info(
-    custom_getopt
-    "${NINJA_HAVE_GETOPT}"
-    "use system version of getopt"
 )
 
 if (MSVC)
