@@ -14,8 +14,9 @@
 
 #include <ninja/build_log.h>
 
+#include "log_schema.h"
+
 #include <ninja/log_generated.h>
-#include <ninja/log_schema.h>
 
 #include <ninja/build.h>
 #include <ninja/filesystem.h>

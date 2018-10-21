@@ -18,7 +18,7 @@
 #include "string_piece_util.h"
 
 #ifdef _WIN32
-#include <ninja/includes_normalize.h>
+#include "includes_normalize.h"
 #else
 #include <ninja/util.h>
 #endif

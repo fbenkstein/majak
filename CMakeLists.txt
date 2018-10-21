@@ -138,6 +138,8 @@ set(
     src/lib/version.cc
 )
 
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/src/lib")
+
 if (RE2C_FOUND AND RE2C_VERSION VERSION_GREATER 0.11.3)
     re2c_target(
         NAME re2c-depfile_parser
@@ -367,13 +369,13 @@ target_include_directories(
 add_executable(ninja src/main/ninja_main.cc)
 target_link_libraries(ninja libninja)
 if (NOT NINJA_HAVE_GETOPT)
-    target_link_libraries(ninja PRIVATE ninja-getopt)
+    target_link_libraries(ninja ninja-getopt)
 endif()
 
 add_executable(majak src/main/majak_main.cc)
 target_link_libraries(majak libninja)
 if (NOT NINJA_HAVE_GETOPT)
-    target_link_libraries(majak PRIVATE ninja-getopt)
+    target_link_libraries(majak ninja-getopt)
 endif()
 
 if (NINJA_BUILD_TESTS)
