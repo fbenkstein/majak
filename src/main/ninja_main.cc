@@ -132,8 +132,8 @@ int ReadFlags(int* argc, char*** argv, Options* options, BuildConfig* config) {
       options->working_dir = optarg;
       break;
     case OPT_VERSION:
-      printf("majak %s (%s)\nderived from ninja %s\n", MAJAK_GIT_VERSION, MAJAK_GIT_COMMIT_ID,
-             kNinjaVersion);
+      printf("%s, actually majak %s (%s)\n", kNinjaVersion, MAJAK_GIT_VERSION,
+             MAJAK_GIT_COMMIT_ID);
       return 0;
     case 'h':
     default:
