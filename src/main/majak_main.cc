@@ -32,11 +32,11 @@
 
 #include <flatbuffers/minireflect.h>
 
+#include <ninja/filesystem.h>
 #include <ninja/manifest_parser.h>
 #include <ninja/ninja.h>
 #include <ninja/util.h>
 #include <ninja/version.h>
-#include <ninja/filesystem.h>
 
 using namespace ninja;
 
@@ -249,7 +249,8 @@ int CommandBuild(const char* working_dir, int argc, char** argv) {
 }
 
 int CommandVersion(const char* = nullptr, int = 0, char** = nullptr) {
-  printf("majak %s\n", kNinjaVersion);
+  printf("majak %s (%s)\nderived from ninja %s\n", MAJAK_GIT_VERSION, MAJAK_GIT_COMMIT_ID,
+         kNinjaVersion);
   return 0;
 }
 

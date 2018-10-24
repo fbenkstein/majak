@@ -20,7 +20,7 @@
 
 namespace ninja {
 
-const char* kNinjaVersion = "1.8.3.git (Majak)";
+const char* kNinjaVersion = "1.8.3";
 
 void ParseVersion(const std::string& version, int* major, int* minor) {
   size_t end = version.find('.');

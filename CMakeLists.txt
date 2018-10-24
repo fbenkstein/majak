@@ -13,16 +13,20 @@ find_program(NINJA_ASCIIDOC_EXECUTABLE asciidoc)
 find_program(NINJA_XSLTPROC_EXECUTABLE xsltproc)
 find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
 find_program(NINJA_RE2C_EXECUTABLE re2c)
+find_package(Git)
 
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
 include(FeatureSummary)
+include(GetGitVersionInfo)
 include(GoogleTest)
 include(RE2CTarget)
 include(utils)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+get_git_version_info(MAJAK_GIT)
 
 ninja_find_filesystem_library()
 message(STATUS "NINJA_FILESYSTEM_INCLUDE: ${NINJA_FILESYSTEM_INCLUDE}")
