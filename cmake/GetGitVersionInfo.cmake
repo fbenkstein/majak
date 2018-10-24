@@ -11,12 +11,10 @@ function(get_git_version_info prefix)
           WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
           RESULT_VARIABLE status
           OUTPUT_VARIABLE GIT_VERSION
+          OUTPUT_STRIP_TRAILING_WHITESPACE
           ERROR_QUIET)
       if(${status})
           set(GIT_VERSION "v0.0.0")
-      else()
-          string(STRIP ${GIT_VERSION} GIT_VERSION)
-          string(REGEX REPLACE "-[0-9]+-g" "-" GIT_VERSION ${GIT_VERSION})
       endif()
 
       # Work out if the repository is dirty
