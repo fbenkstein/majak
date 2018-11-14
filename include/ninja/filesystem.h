@@ -15,25 +15,15 @@
 #ifndef NINJA_FILESYSTEM_H_
 #define NINJA_FILESYSTEM_H_
 
-#include <functional>
-
 #include <ninja/ninja_config.h>
 
-#define NINJA_FILESYSTEM_INCLUDE_ <NINJA_FILESYSTEM_INCLUDE>
-#include NINJA_FILESYSTEM_INCLUDE_
+#include <functional>
+
+#include <boost/filesystem.hpp>
 
 namespace ninja::fs {
-using namespace NINJA_FILESYSTEM_NAMESPACE;
-
-namespace detail {
-template <class T, class U>
-auto __get_error_code_type_helper(T (*f)(U&)) {
-  return U{};
-}
-}  // namespace detail
-
-using error_code =
-    decltype(detail::__get_error_code_type_helper(&temp_directory_path));
+using namespace boost::filesystem;
+using error_code = boost::system::error_code;
 }  // namespace ninja::fs
 
 #endif  // NINJA_FILESYSTEM_H_

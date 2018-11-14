@@ -3,6 +3,8 @@ cmake_policy(SET CMP0063 NEW)
 
 project(majak LANGUAGES C CXX)
 
+set(Boost_USE_STATIC_LIBS ON)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 find_package(PythonInterp 3)
 if (NOT PYTHONINTERP_FOUND)
@@ -14,6 +16,7 @@ find_program(NINJA_XSLTPROC_EXECUTABLE xsltproc)
 find_program(NINJA_DBLATEX_EXECUTABLE dblatex)
 find_program(NINJA_RE2C_EXECUTABLE re2c)
 find_package(Git)
+find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
@@ -27,11 +30,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 get_git_version_info(MAJAK_GIT)
-
-ninja_find_filesystem_library()
-message(STATUS "NINJA_FILESYSTEM_INCLUDE: ${NINJA_FILESYSTEM_INCLUDE}")
-message(STATUS "NINJA_FILESYSTEM_NAMESPACE: ${NINJA_FILESYSTEM_NAMESPACE}")
-message(STATUS "NINJA_FILESYSTEM_LIBRARY: ${NINJA_FILESYSTEM_LIBRARY}")
 
 if (NINJA_RE2C_EXECUTABLE)
     message(STATUS "RE2C: ${NINJA_RE2C_EXECUTABLE}")
@@ -77,15 +75,6 @@ option(
     "Build ninja tests and benchmarks."
     ON
 )
-if (NINJA_FILESYSTEM_NAMESPACE STREQUAL "boost::filesystem")
-    set(NINJA_ENABLE_EXCEPTIONS ON CACHE INTERNAL FORCE "")
-else()
-    option(
-        NINJA_ENABLE_EXCEPTIONS
-        "Build ninja with exceptions enabled."
-        OFF
-    )
-endif()
 option(
     NINJA_ENABLE_RTTI
     "Build ninja with RTTI enabled"
@@ -241,10 +230,6 @@ else()
         -Wno-implicit-fallthrough
     )
 
-    if (NOT NINJA_ENABLE_EXCEPTIONS)
-        list(APPEND ninja_compile_options -fno-exceptions)
-    endif()
-
     if(NOT NINJA_ENABLE_RTTI)
         list(APPEND ninja_compile_options -fno-rtti)
     endif()
@@ -352,7 +337,8 @@ target_link_libraries(
     PUBLIC
     flatbuffers
     absl::strings
-    "${NINJA_FILESYSTEM_LIBRARY}"
+    Boost::filesystem
+    Boost::system
     PRIVATE
     str_format_internal
 )
@@ -471,15 +457,6 @@ if (NINJA_BUILD_TESTS)
     endforeach()
     if (NOT NINJA_HAVE_GETOPT)
         target_link_libraries(manifest_parser_perftest ninja-getopt)
-    endif()
-
-    if (Boost_FILESYSTEM_FOUND)
-        target_include_directories(canon_perftest PRIVATE ${Boost_INCLUDE_DIRS})
-        target_link_libraries(
-            canon_perftest
-            ${Boost_FILESYSTEM_LIBRARY}
-            ${Boost_SYSTEM_LIBRARY}
-        )
     endif()
 endif()
 
