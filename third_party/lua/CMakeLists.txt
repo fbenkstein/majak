@@ -9,7 +9,7 @@ add_library(majak_lua STATIC ${majak_lua_sources})
 target_include_directories(majak_lua PUBLIC lua/src)
 
 add_executable(majak_lua_interpreter ${majak_lua_interpreter_sources})
-set_property(TARGET majak_lua_interpreter PROPERTY OUTPUT_NAME majak_lua)
+set_property(TARGET majak_lua_interpreter PROPERTY OUTPUT_NAME majak_luai)
 target_link_libraries(majak_lua_interpreter majak_lua)
 add_executable(majak_lua_compiler ${majak_lua_compiler_sources})
 set_property(TARGET majak_lua_compiler PROPERTY OUTPUT_NAME majak_luac)
