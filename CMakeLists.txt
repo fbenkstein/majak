@@ -113,6 +113,7 @@ set(FLATBUFFERS_LIBCXX_WITH_CLANG OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/flatbuffers EXCLUDE_FROM_ALL)
 
 add_subdirectory(third_party/abseil EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/lua EXCLUDE_FROM_ALL)
 
 if (MSVC)
     fix_default_msvc_settings()
